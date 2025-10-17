@@ -1,0 +1,50 @@
+/* Menu Page Styles */
+.menu-card {
+  transition: all 0.3s ease;
+}
+
+.menu-card:hover {
+  transform: translateY(-5px);
+  border-color: #D4A027 !important;
+}
+
+.add-to-cart-btn:hover {
+  background: #e6b12f !important;
+  transform: scale(1.05);
+}
+
+.icon-btn:hover {
+  border-color: #D4A027 !important;
+  color: #D4A027 !important;
+}
+
+.filter-btn:hover {
+  background: #D4A027 !important;
+  border-color: #D4A027 !important;
+  color: #000 !important;
+}
+
+.footer-link:hover {
+  color: #D4A027 !important;
+}
+
+.social-btn:hover {
+  background: #D4A027 !important;
+  border-color: #D4A027 !important;
+  color: #000 !important;
+}
+
+.qty-btn:hover {
+  background: #D4A027 !important;
+  border-color: #D4A027 !important;
+  color: #000 !important;
+}
+
+.remove-btn:hover {
+  background: #ff0000 !important;
+}
+
+.checkout-btn:hover {
+  background: #e6b12f !important;
+  transform: translateY(-2px);
+}
