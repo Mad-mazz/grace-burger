@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ShoppingCart, Search, LogOut, Plus, Minus, X } from 'lucide-react';
 import './MenuPage.css';
 import CheckoutPage from './CheckoutPage';
+import ReceiptPage from './Receipt';
 import { saveOrder } from './firebase';
 
 import menuBg from './images/menu-image.jpg';
@@ -57,216 +58,73 @@ export default function MenuPage({ user, onSignOut }) {
   const [showCart, setShowCart] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
-  const [selectedItem, setSelectedItem] = useState(null); // Add this line
+  const [selectedItem, setSelectedItem] = useState(null);
   const [showItemModal, setShowItemModal] = useState(false);
   const [showCheckout, setShowCheckout] = useState(false);
+  const [showReceipt, setShowReceipt] = useState(false);
+  const [orderData, setOrderData] = useState(null);
 
   const menuItems = {
-  'Burgers': [
-    { 
-      id: 1, 
-      name: 'CDO Burger', 
-      price: 27, 
-      category: 'Burgers', 
-      image: cdoBurger,
-      emoji: '🍔',
-      description: 'Classic burger with our signature patty',
-      ingredients: ['Patty', 'Bun']
-    },
-    { 
-      id: 2, 
-      name: 'Burger with Ham', 
-      price: 36, 
-      category: 'Burgers', 
-      image: burgerWithHam,
-      emoji: '🍔',
-      description: 'Juicy burger topped with savory ham',
-      ingredients: ['Patty', 'Ham', 'Bun']
-    },
-    { 
-      id: 3, 
-      name: 'Burger with Egg', 
-      price: 37, 
-      category: 'Burgers', 
-      image: burgerEgg,
-      emoji: '🍔',
-      description: 'Burger with a perfectly fried egg',
-      ingredients: ['Patty', 'Egg', 'Bun']
-    },
-    { 
-      id: 4, 
-      name: 'Burger with Bacon', 
-      price: 42, 
-      category: 'Burgers', 
-      image: burgerBacon,
-      emoji: '🍔',
-      description: 'Crispy bacon makes this burger special',
-      ingredients: ['Patty', 'Bacon', 'Bun']
-    },
-    { 
-      id: 5, 
-      name: 'Cheese Burger', 
-      price: 35, 
-      category: 'Burgers', 
-      image: cheeseBurger,
-      emoji: '🍔',
-      description: 'Melted cheese perfection',
-      ingredients: ['Patty', 'Cheese', 'Bun']
-    },
-    { 
-      id: 6, 
-      name: 'Cheese Burger with Ham', 
-      price: 41, 
-      category: 'Burgers', 
-      image: cheeseBurgerHam,
-      emoji: '🍔',
-      description: 'Cheese and ham combo',
-      ingredients: ['Patty', 'Cheese', 'Ham', 'Bun']
-    },
-    { 
-      id: 7, 
-      name: 'Cheese Burger with Egg', 
-      price: 43, 
-      category: 'Burgers', 
-      image: cheeseBurgerEgg,
-      emoji: '🍔',
-      description: 'Cheese and egg delight',
-      ingredients: ['Patty', 'Cheese', 'Egg', 'Bun']
-    },
-    { 
-      id: 8, 
-      name: 'Cheese Burger with Bacon', 
-      price: 47, 
-      category: 'Burgers', 
-      image: cheeseBurgerBacon,
-      emoji: '🍔',
-      description: 'Triple threat: cheese, bacon, and patty',
-      ingredients: ['Patty', 'Cheese', 'Bacon', 'Bun']
-    },
-    { 
-      id: 9, 
-      name: 'Ham Burger', 
-      price: 29, 
-      category: 'Burgers', 
-      image: hamBurger,
-      emoji: '🍔',
-      description: 'Simple and delicious ham burger',
-      ingredients: ['Ham', 'Bun']
-    },
-    { 
-      id: 10, 
-      name: 'Ham Burger with Cheese', 
-      price: 36, 
-      category: 'Burgers', 
-      image: hamBurgerCheese,
-      emoji: '🍔',
-      description: 'Ham and cheese classic',
-      ingredients: ['Ham', 'Cheese', 'Bun']
-    },
-    { 
-      id: 11, 
-      name: 'Ham Burger with Egg', 
-      price: 34, 
-      category: 'Burgers', 
-      image: hamBurgerEgg,
-      emoji: '🍔',
-      description: 'Ham and egg breakfast style',
-      ingredients: ['Ham', 'Egg', 'Bun']
-    },
-    { 
-      id: 12, 
-      name: 'Hamburger With Cheese and Egg', 
-      price: 48, 
-      category: 'Burgers', 
-      image: hamBurgerCheeseEgg,
-      emoji: '🍔',
-      description: 'Loaded with ham, cheese, and egg',
-      ingredients: ['Ham', 'Cheese', 'Egg', 'Bun']
-    },
-    { 
-      id: 13, 
-      name: 'Burger Bacon Ham', 
-      price: 52, 
-      category: 'Burgers', 
-      image: burgerBaconHam,
-      emoji: '🍔',
-      description: 'Bacon and ham power combo',
-      ingredients: ['Patty', 'Bacon', 'Ham', 'Bun']
-    },
-    { 
-      id: 24, 
-      name: 'Complete', 
-      price: 64, 
-      category: 'Burgers', 
-      image: complete,
-      emoji: '🍔', 
-      tag: 'SIGNATURE',
-      description: 'Our signature burger with everything!',
-      ingredients: ['Patty', 'Cheese', 'Ham', 'Egg', 'Bun']
-    },
-    { 
-      id: 25, 
-      name: 'Complete change Bacon', 
-      price: 62, 
-      category: 'Burgers', 
-      image: completeBacon,
-      emoji: '🍔',
-      description: 'Complete burger, bacon style',
-      ingredients: ['Patty', 'Cheese', 'Bacon', 'Egg', 'Bun']
-    },
-    { 
-      id: 26, 
-      name: 'Complete with Bacon', 
-      price: 67, 
-      category: 'Burgers', 
-      image: completeBacon,
-      emoji: '🍔',
-      description: 'The ultimate burger experience',
-      ingredients: ['Patty', 'Cheese', 'Ham', 'Bacon', 'Egg', 'Bun']
-    },
-  ],
-  'Sandwiches': [
-    { id: 14, name: 'Egg Cheese', price: 38, category: 'Sandwiches', image: eggCheese, emoji: '🥪', description: 'Egg and cheese sandwich', ingredients: ['Egg', 'Cheese', 'Bun'] },
-    { id: 15, name: 'Egg Sandwich', price: 30, category: 'Sandwiches', image: eggSandwich, emoji: '🥪', description: 'Simple egg sandwich', ingredients: ['Egg', 'Bun'] },
-    { id: 16, name: 'Bacon Sandwich', price: 40, category: 'Sandwiches', image: baconSandwich, emoji: '🥪', description: 'Crispy bacon sandwich', ingredients: ['Bacon', 'Bun'] },
-    { id: 19, name: 'Bacon with Ham', price: 48, category: 'Sandwiches', image: baconHamSandwich, emoji: '🥪', description: 'Bacon and ham combo', ingredients: ['Bacon', 'Ham', 'Bun'] },
-    { id: 20, name: 'Bacon with Egg', price: 49, category: 'Sandwiches', image: baconEggSandwich, emoji: '🥪', description: 'Bacon and egg classic', ingredients: ['Bacon', 'Egg', 'Bun'] },
-    { id: 21, name: 'Bacon with Cheese', price: 51, category: 'Sandwiches', image: baconCheeseSandwich, emoji: '🥪', description: 'Bacon and cheese delight', ingredients: ['Bacon', 'Cheese', 'Bun'] },
-    { id: 22, name: 'Bacon Cheese with Ham', price: 52, category: 'Sandwiches', image: baconCheeseHamSandwich, emoji: '🥪', description: 'Loaded bacon sandwich', ingredients: ['Bacon', 'Cheese', 'Ham', 'Bun'] },
-    { id: 23, name: 'Bacon Cheese With Egg', price: 54, category: 'Sandwiches', image: baconCheeseEggSandwich, emoji: '🥪', description: 'Bacon, cheese, and egg combo', ingredients: ['Bacon', 'Cheese', 'Egg', 'Bun'] },
-  ],
-  'Hot Dogs': [
-    { id: 27, name: '1/2 Long', price: 30, category: 'Hot Dogs', image: halfLong, emoji: '🌭', description: 'Half-size hot dog', ingredients: ['Hotdog', 'Bun'] },
-    { id: 28, name: '1/2 Long Cheese', price: 37, category: 'Hot Dogs', image: halfLongCheese, emoji: '🌭', description: 'Half-size with cheese', ingredients: ['Hotdog', 'Cheese', 'Bun'] },
-    { id: 29, name: '1/2 Long Bacon', price: 43, category: 'Hot Dogs', image: halfLongBacon, emoji: '🌭', description: 'Half-size with bacon', ingredients: ['Hotdog', 'Bacon', 'Bun'] },
-    { id: 30, name: '1/2 Long Ham', price: 42, category: 'Hot Dogs', image: halfLongHam, emoji: '🌭', description: 'Half-size with ham', ingredients: ['Hotdog', 'Ham', 'Bun'] },
-    { id: 31, name: '1/2 Long Egg', price: 44, category: 'Hot Dogs', image: halfLongEgg, emoji: '🌭', description: 'Half-size with egg', ingredients: ['Hotdog', 'Egg', 'Bun'] },
-    { id: 32, name: '1/2 Long Bacon Cheese', price: 53, category: 'Hot Dogs', image: halfLongBaconCheese, emoji: '🌭', description: 'Half-size loaded', ingredients: ['Hotdog', 'Bacon', 'Cheese', 'Bun'] },
-    { id: 33, name: 'Footlong', price: 47, category: 'Hot Dogs', image: footlong, emoji: '🌭', description: 'Full-size hot dog', ingredients: ['Footlong', 'Bun'] },
-    { id: 34, name: 'Footlong Ham', price: 53, category: 'Hot Dogs', image: footlongHam, emoji: '🌭', description: 'Footlong with ham', ingredients: ['Footlong', 'Ham', 'Bun'] },
-    { id: 35, name: 'Footlong Egg Cheese', price: 58, category: 'Hot Dogs', image: footlongEggCheese, emoji: '🌭', description: 'Footlong with egg and cheese', ingredients: ['Footlong', 'Egg', 'Cheese', 'Bun'] },
-    { id: 36, name: 'Footlong Cheese', price: 56, category: 'Hot Dogs', image: footlongCheese, emoji: '🌭', description: 'Footlong with cheese', ingredients: ['Footlong', 'Cheese', 'Bun'] },
-    { id: 37, name: 'Footlong Bacon', price: 64, category: 'Hot Dogs', image: footlongBacon, emoji: '🌭', description: 'Footlong with bacon', ingredients: ['Footlong', 'Bacon', 'Bun'] },
-    { id: 38, name: 'Footlong Cheese with Bacon', price: 77, category: 'Hot Dogs', image: footlongCheeseBacon, emoji: '🌭', description: 'Ultimate footlong', ingredients: ['Footlong', 'Cheese', 'Bacon', 'Bun'] },
-    { id: 39, name: 'Footlong Ham with Bacon', price: 77, category: 'Hot Dogs', image: footlongHamBacon, emoji: '🌭', description: 'Footlong ham and bacon', ingredients: ['Footlong', 'Ham', 'Bacon', 'Bun'] },
-  ],
-  'Rice Meals': [
-    { id: 40, name: 'Siomai Rice', price: 40, category: 'Rice Meals', image: siomaiRice, emoji: '🍚', description: 'Siomai with steamed rice', ingredients: ['Siomai', 'Rice'] },
-    { id: 41, name: 'Ham Rice', price: 25, category: 'Rice Meals', image: hamRice, emoji: '🍚', description: 'Ham with steamed rice', ingredients: ['Ham', 'Rice'] },
-    { id: 42, name: 'Egg Rice', price: 30, category: 'Rice Meals', image: eggRice, emoji: '🍚', description: 'Egg with steamed rice', ingredients: ['Egg', 'Rice'] },
-    { id: 43, name: 'Hotdog Rice', price: 35, category: 'Rice Meals', image: hotdogRice, emoji: '🍚', description: 'Hotdog with steamed rice', ingredients: ['Hotdog', 'Rice'] },
-  ],
-  'Sides': [
-    { id: 17, name: '4-pcs Grace Pork Siomai', price: 25, category: 'Sides', image: siomai, emoji: '🥟', description: 'Four pieces of pork siomai', ingredients: ['Siomai'] },
-    { id: 18, name: 'Patty', price: 15, category: 'Sides', image: patty, emoji: '🥩', description: 'Single burger patty', ingredients: ['Patty'] },
-    { id: 44, name: 'Ham', price: 12, category: 'Sides', image: ham, emoji: '🥓', description: 'Sliced ham', ingredients: ['Ham'] },
-  ],
-  'Beverages': [
-    { id: 45, name: 'Mountain Dew', price: 25, category: 'Beverages', image: mountainDew, emoji: '🥤', description: 'Refreshing citrus soda', ingredients: ['Softdrinks'] },
-    { id: 46, name: 'Pepsi', price: 15, category: 'Beverages', image: pepsi, emoji: '🥤', description: 'Classic cola', ingredients: ['Softdrinks'] },
-    { id: 47, name: 'Rootbeer', price: 15, category: 'Beverages', image: rootbeer, emoji: '🥤', description: 'Smooth rootbeer', ingredients: ['Softdrinks'] },
-  ],
-};
+    'Burgers': [
+      { id: 1, name: 'CDO Burger', price: 27, category: 'Burgers', image: cdoBurger, emoji: '🍔', description: 'Classic burger with our signature patty', ingredients: ['Patty', 'Bun'] },
+      { id: 2, name: 'Burger with Ham', price: 36, category: 'Burgers', image: burgerWithHam, emoji: '🍔', description: 'Juicy burger topped with savory ham', ingredients: ['Patty', 'Ham', 'Bun'] },
+      { id: 3, name: 'Burger with Egg', price: 37, category: 'Burgers', image: burgerEgg, emoji: '🍔', description: 'Burger with a perfectly fried egg', ingredients: ['Patty', 'Egg', 'Bun'] },
+      { id: 4, name: 'Burger with Bacon', price: 42, category: 'Burgers', image: burgerBacon, emoji: '🍔', description: 'Crispy bacon makes this burger special', ingredients: ['Patty', 'Bacon', 'Bun'] },
+      { id: 5, name: 'Cheese Burger', price: 35, category: 'Burgers', image: cheeseBurger, emoji: '🍔', description: 'Melted cheese perfection', ingredients: ['Patty', 'Cheese', 'Bun'] },
+      { id: 6, name: 'Cheese Burger with Ham', price: 41, category: 'Burgers', image: cheeseBurgerHam, emoji: '🍔', description: 'Cheese and ham combo', ingredients: ['Patty', 'Cheese', 'Ham', 'Bun'] },
+      { id: 7, name: 'Cheese Burger with Egg', price: 43, category: 'Burgers', image: cheeseBurgerEgg, emoji: '🍔', description: 'Cheese and egg delight', ingredients: ['Patty', 'Cheese', 'Egg', 'Bun'] },
+      { id: 8, name: 'Cheese Burger with Bacon', price: 47, category: 'Burgers', image: cheeseBurgerBacon, emoji: '🍔', description: 'Triple threat: cheese, bacon, and patty', ingredients: ['Patty', 'Cheese', 'Bacon', 'Bun'] },
+      { id: 9, name: 'Ham Burger', price: 29, category: 'Burgers', image: hamBurger, emoji: '🍔', description: 'Simple and delicious ham burger', ingredients: ['Ham', 'Bun'] },
+      { id: 10, name: 'Ham Burger with Cheese', price: 36, category: 'Burgers', image: hamBurgerCheese, emoji: '🍔', description: 'Ham and cheese classic', ingredients: ['Ham', 'Cheese', 'Bun'] },
+      { id: 11, name: 'Ham Burger with Egg', price: 34, category: 'Burgers', image: hamBurgerEgg, emoji: '🍔', description: 'Ham and egg breakfast style', ingredients: ['Ham', 'Egg', 'Bun'] },
+      { id: 12, name: 'Hamburger With Cheese and Egg', price: 48, category: 'Burgers', image: hamBurgerCheeseEgg, emoji: '🍔', description: 'Loaded with ham, cheese, and egg', ingredients: ['Ham', 'Cheese', 'Egg', 'Bun'] },
+      { id: 13, name: 'Burger Bacon Ham', price: 52, category: 'Burgers', image: burgerBaconHam, emoji: '🍔', description: 'Bacon and ham power combo', ingredients: ['Patty', 'Bacon', 'Ham', 'Bun'] },
+      { id: 24, name: 'Complete', price: 64, category: 'Burgers', image: complete, emoji: '🍔', tag: 'SIGNATURE', description: 'Our signature burger with everything!', ingredients: ['Patty', 'Cheese', 'Ham', 'Egg', 'Bun'] },
+      { id: 25, name: 'Complete change Bacon', price: 62, category: 'Burgers', image: completeBacon, emoji: '🍔', description: 'Complete burger, bacon style', ingredients: ['Patty', 'Cheese', 'Bacon', 'Egg', 'Bun'] },
+      { id: 26, name: 'Complete with Bacon', price: 67, category: 'Burgers', image: completeBacon, emoji: '🍔', description: 'The ultimate burger experience', ingredients: ['Patty', 'Cheese', 'Ham', 'Bacon', 'Egg', 'Bun'] },
+    ],
+    'Sandwiches': [
+      { id: 14, name: 'Egg Cheese', price: 38, category: 'Sandwiches', image: eggCheese, emoji: '🥪', description: 'Egg and cheese sandwich', ingredients: ['Egg', 'Cheese', 'Bun'] },
+      { id: 15, name: 'Egg Sandwich', price: 30, category: 'Sandwiches', image: eggSandwich, emoji: '🥪', description: 'Simple egg sandwich', ingredients: ['Egg', 'Bun'] },
+      { id: 16, name: 'Bacon Sandwich', price: 40, category: 'Sandwiches', image: baconSandwich, emoji: '🥪', description: 'Crispy bacon sandwich', ingredients: ['Bacon', 'Bun'] },
+      { id: 19, name: 'Bacon with Ham', price: 48, category: 'Sandwiches', image: baconHamSandwich, emoji: '🥪', description: 'Bacon and ham combo', ingredients: ['Bacon', 'Ham', 'Bun'] },
+      { id: 20, name: 'Bacon with Egg', price: 49, category: 'Sandwiches', image: baconEggSandwich, emoji: '🥪', description: 'Bacon and egg classic', ingredients: ['Bacon', 'Egg', 'Bun'] },
+      { id: 21, name: 'Bacon with Cheese', price: 51, category: 'Sandwiches', image: baconCheeseSandwich, emoji: '🥪', description: 'Bacon and cheese delight', ingredients: ['Bacon', 'Cheese', 'Bun'] },
+      { id: 22, name: 'Bacon Cheese with Ham', price: 52, category: 'Sandwiches', image: baconCheeseHamSandwich, emoji: '🥪', description: 'Loaded bacon sandwich', ingredients: ['Bacon', 'Cheese', 'Ham', 'Bun'] },
+      { id: 23, name: 'Bacon Cheese With Egg', price: 54, category: 'Sandwiches', image: baconCheeseEggSandwich, emoji: '🥪', description: 'Bacon, cheese, and egg combo', ingredients: ['Bacon', 'Cheese', 'Egg', 'Bun'] },
+    ],
+    'Hot Dogs': [
+      { id: 27, name: '1/2 Long', price: 30, category: 'Hot Dogs', image: halfLong, emoji: '🌭', description: 'Half-size hot dog', ingredients: ['Hotdog', 'Bun'] },
+      { id: 28, name: '1/2 Long Cheese', price: 37, category: 'Hot Dogs', image: halfLongCheese, emoji: '🌭', description: 'Half-size with cheese', ingredients: ['Hotdog', 'Cheese', 'Bun'] },
+      { id: 29, name: '1/2 Long Bacon', price: 43, category: 'Hot Dogs', image: halfLongBacon, emoji: '🌭', description: 'Half-size with bacon', ingredients: ['Hotdog', 'Bacon', 'Bun'] },
+      { id: 30, name: '1/2 Long Ham', price: 42, category: 'Hot Dogs', image: halfLongHam, emoji: '🌭', description: 'Half-size with ham', ingredients: ['Hotdog', 'Ham', 'Bun'] },
+      { id: 31, name: '1/2 Long Egg', price: 44, category: 'Hot Dogs', image: halfLongEgg, emoji: '🌭', description: 'Half-size with egg', ingredients: ['Hotdog', 'Egg', 'Bun'] },
+      { id: 32, name: '1/2 Long Bacon Cheese', price: 53, category: 'Hot Dogs', image: halfLongBaconCheese, emoji: '🌭', description: 'Half-size loaded', ingredients: ['Hotdog', 'Bacon', 'Cheese', 'Bun'] },
+      { id: 33, name: 'Footlong', price: 47, category: 'Hot Dogs', image: footlong, emoji: '🌭', description: 'Full-size hot dog', ingredients: ['Footlong', 'Bun'] },
+      { id: 34, name: 'Footlong Ham', price: 53, category: 'Hot Dogs', image: footlongHam, emoji: '🌭', description: 'Footlong with ham', ingredients: ['Footlong', 'Ham', 'Bun'] },
+      { id: 35, name: 'Footlong Egg Cheese', price: 58, category: 'Hot Dogs', image: footlongEggCheese, emoji: '🌭', description: 'Footlong with egg and cheese', ingredients: ['Footlong', 'Egg', 'Cheese', 'Bun'] },
+      { id: 36, name: 'Footlong Cheese', price: 56, category: 'Hot Dogs', image: footlongCheese, emoji: '🌭', description: 'Footlong with cheese', ingredients: ['Footlong', 'Cheese', 'Bun'] },
+      { id: 37, name: 'Footlong Bacon', price: 64, category: 'Hot Dogs', image: footlongBacon, emoji: '🌭', description: 'Footlong with bacon', ingredients: ['Footlong', 'Bacon', 'Bun'] },
+      { id: 38, name: 'Footlong Cheese with Bacon', price: 77, category: 'Hot Dogs', image: footlongCheeseBacon, emoji: '🌭', description: 'Ultimate footlong', ingredients: ['Footlong', 'Cheese', 'Bacon', 'Bun'] },
+      { id: 39, name: 'Footlong Ham with Bacon', price: 77, category: 'Hot Dogs', image: footlongHamBacon, emoji: '🌭', description: 'Footlong ham and bacon', ingredients: ['Footlong', 'Ham', 'Bacon', 'Bun'] },
+    ],
+    'Rice Meals': [
+      { id: 40, name: 'Siomai Rice', price: 40, category: 'Rice Meals', image: siomaiRice, emoji: '🍚', description: 'Siomai with steamed rice', ingredients: ['Siomai', 'Rice'] },
+      { id: 41, name: 'Ham Rice', price: 25, category: 'Rice Meals', image: hamRice, emoji: '🍚', description: 'Ham with steamed rice', ingredients: ['Ham', 'Rice'] },
+      { id: 42, name: 'Egg Rice', price: 30, category: 'Rice Meals', image: eggRice, emoji: '🍚', description: 'Egg with steamed rice', ingredients: ['Egg', 'Rice'] },
+      { id: 43, name: 'Hotdog Rice', price: 35, category: 'Rice Meals', image: hotdogRice, emoji: '🍚', description: 'Hotdog with steamed rice', ingredients: ['Hotdog', 'Rice'] },
+    ],
+    'Sides': [
+      { id: 17, name: '4-pcs Grace Pork Siomai', price: 25, category: 'Sides', image: siomai, emoji: '🥟', description: 'Four pieces of pork siomai', ingredients: ['Siomai'] },
+      { id: 18, name: 'Patty', price: 15, category: 'Sides', image: patty, emoji: '🥩', description: 'Single burger patty', ingredients: ['Patty'] },
+      { id: 44, name: 'Ham', price: 12, category: 'Sides', image: ham, emoji: '🥓', description: 'Sliced ham', ingredients: ['Ham'] },
+    ],
+    'Beverages': [
+      { id: 45, name: 'Mountain Dew', price: 25, category: 'Beverages', image: mountainDew, emoji: '🥤', description: 'Refreshing citrus soda', ingredients: ['Softdrinks'] },
+      { id: 46, name: 'Pepsi', price: 15, category: 'Beverages', image: pepsi, emoji: '🥤', description: 'Classic cola', ingredients: ['Softdrinks'] },
+      { id: 47, name: 'Rootbeer', price: 15, category: 'Beverages', image: rootbeer, emoji: '🥤', description: 'Smooth rootbeer', ingredients: ['Softdrinks'] },
+    ],
+  };
 
   const openItemModal = (item) => {
     setSelectedItem(item);
@@ -317,42 +175,107 @@ export default function MenuPage({ user, onSignOut }) {
     return cart.reduce((total, item) => total + item.quantity, 0);
   };
 
-  const handlePlaceOrder = async (paymentMethod) => {
-  console.log('Order placed with payment method:', paymentMethod);
-  console.log('Cart:', cart);
-  
-  try {
-    // Prepare order data
-    const orderData = {
-      userId: user.uid,
-      userEmail: user.email,
-      userName: user.displayName || user.email,
-      items: cart.map(item => ({
-        id: item.id,
-        name: item.name,
-        price: item.price,
-        quantity: item.quantity,
-        ingredients: item.ingredients
-      })),
-      totalAmount: getTotalPrice(),
-      paymentMethod: paymentMethod,
-      status: 'Processing',
-      paymentConfirmed: false
-    };
+  const handlePlaceOrder = async (paymentMethod, gcashReference = null) => {
+    console.log('Order placed with payment method:', paymentMethod);
+    console.log('Cart:', cart);
+    
+    try {
+      const now = new Date();
+      const orderNumber = `#GB-${now.getFullYear()}-${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`;
+      
+      // Format date and time
+      const orderDate = now.toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      });
+      const orderTime = now.toLocaleTimeString('en-US', { 
+        hour: 'numeric', 
+        minute: '2-digit',
+        hour12: true 
+      });
 
-    // Save to Firebase
-    const orderId = await saveOrder(orderData);
-    
-    alert(`Order placed successfully! Order ID: ${orderId}\nPayment method: ${paymentMethod}`);
-    
-    // Clear cart and close checkout
-    setCart([]);
-    setShowCheckout(false);
-  } catch (error) {
-    console.error('Error placing order:', error);
-    alert('Failed to place order. Please try again.');
-  }
-};
+      // Prepare order data for Firebase
+      const firebaseOrderData = {
+        userId: user.uid,
+        userEmail: user.email,
+        userName: user.displayName || user.email,
+        orderNumber: orderNumber,
+        date: orderDate,
+        time: orderTime,
+        timestamp: now.toISOString(),
+        items: cart.map(item => ({
+          id: item.id,
+          name: item.name,
+          price: item.price,
+          quantity: item.quantity,
+          total: item.price * item.quantity,
+          image: item.image,
+          ingredients: item.ingredients
+        })),
+        subtotal: getTotalPrice(),
+        totalAmount: getTotalPrice(),
+        paymentMethod: paymentMethod === 'cash' ? 'Cash on Delivery' : 'GCash',
+        paymentReference: paymentMethod === 'gcash' ? gcashReference : null,
+        status: 'received',
+        paymentConfirmed: paymentMethod === 'cash' ? false : true,
+        pickupLocation: {
+          name: 'Grace Burger CDO',
+          street: '123 Main Street',
+          barangay: 'Barangay Carmen',
+          city: 'Cagayan de Oro City'
+        },
+        estimatedTime: '20-30 mins',
+        contactNumber: '+63 912 345 6789'
+      };
+
+      // Save to Firebase
+      const orderId = await saveOrder(firebaseOrderData);
+      console.log('Order saved with ID:', orderId);
+
+      // Prepare order data for Receipt page
+      const receiptData = {
+        id: orderId,
+        orderNumber: orderNumber,
+        date: orderDate,
+        time: orderTime,
+        timestamp: now,
+        paymentMethod: paymentMethod === 'cash' ? 'Cash on Delivery' : 'GCash',
+        reference: paymentMethod === 'gcash' ? `Ref: ${gcashReference}` : null,
+        contactNumber: '+63 912 345 6789',
+        items: cart.map(item => ({
+          name: item.name,
+          quantity: item.quantity,
+          price: item.price,
+          total: item.price * item.quantity
+        })),
+        subtotal: getTotalPrice(),
+        total: getTotalPrice(),
+        pickupLocation: {
+          name: 'Grace Burger CDO',
+          street: '123 Main Street',
+          barangay: 'Barangay Carmen',
+          city: 'Cagayan de Oro City'
+        },
+        estimatedTime: '20-30 mins'
+      };
+
+      // Show receipt page
+      setOrderData(receiptData);
+      setCart([]);
+      setShowCheckout(false);
+      setShowReceipt(true);
+      
+    } catch (error) {
+      console.error('Error placing order:', error);
+      alert('Failed to place order. Please try again.');
+    }
+  };
+
+  const handleBackToMenu = () => {
+    setShowReceipt(false);
+    setOrderData(null);
+  };
 
   const handleCheckout = () => {
     if (cart.length === 0) {
@@ -363,7 +286,17 @@ export default function MenuPage({ user, onSignOut }) {
     setShowCart(false);
   };
 
+  // Show Receipt Page
+  if (showReceipt && orderData) {
+    return (
+      <ReceiptPage
+        orderData={orderData}
+        onBackToMenu={handleBackToMenu}
+      />
+    );
+  }
 
+  // Show Checkout Page
   if (showCheckout) {
     return (
       <CheckoutPage

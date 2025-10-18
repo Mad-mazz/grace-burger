@@ -1,3 +1,4 @@
+// CheckoutPage.js - CORRECTED FINAL VERSION
 import React, { useState } from 'react';
 import { ChevronLeft, Copy, Check } from 'lucide-react';
 import qrCode from './images/qr-code.jpg';
@@ -5,12 +6,31 @@ import qrCode from './images/qr-code.jpg';
 export default function CheckoutPage({ cart, totalPrice, onBack, onPlaceOrder }) {
   const [selectedPayment, setSelectedPayment] = useState('cash');
   const [copied, setCopied] = useState(false);
+  const [gcashReference, setGcashReference] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
   const gcashNumber = '09918428234';
 
   const handleCopyNumber = () => {
     navigator.clipboard.writeText(gcashNumber);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handlePlaceOrder = () => {
+    // Validate GCash reference if GCash is selected
+    if (selectedPayment === 'gcash' && !gcashReference.trim()) {
+      alert('Please enter your GCash reference number');
+      return;
+    }
+
+    setIsProcessing(true);
+
+    // Call parent's onPlaceOrder with payment method and reference
+    onPlaceOrder(selectedPayment, gcashReference);
+    
+    setTimeout(() => {
+      setIsProcessing(false);
+    }, 1000);
   };
 
   return (
@@ -48,7 +68,7 @@ export default function CheckoutPage({ cart, totalPrice, onBack, onPlaceOrder })
             <ChevronLeft size={20} />
           </button>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <div style={{ color: '#D4A027', fontSize: '1.5rem' }}>⬡</div>
+            <div style={{ color: '#D4A027', fontSize: '1.5rem' }}>🍔</div>
             <span style={{ color: '#D4A027', fontWeight: 'bold', fontSize: '1.1rem', letterSpacing: '2px' }}>
               GRACE BURGER
             </span>
@@ -442,11 +462,13 @@ export default function CheckoutPage({ cart, totalPrice, onBack, onPlaceOrder })
                     marginBottom: '0.5rem',
                     letterSpacing: '1px'
                   }}>
-                    ENTER REFERENCE NUMBER
+                    ENTER REFERENCE NUMBER *
                   </label>
                   <input
                     type="text"
                     placeholder="Reference number from GCash"
+                    value={gcashReference}
+                    onChange={(e) => setGcashReference(e.target.value)}
                     style={{
                       width: '100%',
                       padding: '1rem',
@@ -455,7 +477,8 @@ export default function CheckoutPage({ cart, totalPrice, onBack, onPlaceOrder })
                       borderRadius: '8px',
                       color: '#fff',
                       fontSize: '1rem',
-                      outline: 'none'
+                      outline: 'none',
+                      boxSizing: 'border-box'
                     }}
                   />
                 </div>
@@ -464,24 +487,26 @@ export default function CheckoutPage({ cart, totalPrice, onBack, onPlaceOrder })
 
             {/* Place Order Button */}
             <button
-              onClick={() => onPlaceOrder(selectedPayment)}
+              onClick={handlePlaceOrder}
+              disabled={isProcessing}
               style={{
                 width: '100%',
-                background: '#D4A027',
+                background: isProcessing ? '#666' : '#D4A027',
                 border: 'none',
                 color: '#000',
                 padding: '1.25rem',
                 borderRadius: '8px',
                 fontSize: '1.1rem',
                 fontWeight: 'bold',
-                cursor: 'pointer',
+                cursor: isProcessing ? 'not-allowed' : 'pointer',
                 marginTop: '2rem',
                 letterSpacing: '2px',
                 clipPath: 'polygon(8% 0%, 100% 0%, 92% 100%, 0% 100%)',
-                transition: 'all 0.3s'
+                transition: 'all 0.3s',
+                opacity: isProcessing ? 0.7 : 1
               }}
             >
-              PLACE ORDER
+              {isProcessing ? 'PROCESSING...' : 'PLACE ORDER'}
             </button>
           </div>
         </div>
