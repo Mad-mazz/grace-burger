@@ -5,6 +5,7 @@ import { signInWithGoogle, signUpWithEmail, signInWithEmail, auth } from './fire
 import { onAuthStateChanged } from 'firebase/auth';
 import './App.css';
 import MenuPage from './MenuPage';
+import AdminDashboard from './AdminDashboard'; // ADD THIS
 
 export default function App() {
   const [showPassword, setShowPassword] = useState(false);
@@ -39,20 +40,20 @@ export default function App() {
   };
 
   useEffect(() => {
-  console.log('Setting up auth listener...');
-  
-  // Force sign out on app load to always start at login page
-  auth.signOut();
-  
-  const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-    console.log('Auth state changed:', currentUser);
-    setUser(currentUser);
-    if (currentUser) {
-      console.log('User is logged in:', currentUser.email);
-    }
-  });
-  return () => unsubscribe();
-}, []);
+    console.log('Setting up auth listener...');
+    
+    // Force sign out on app load to always start at login page
+    auth.signOut();
+    
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      console.log('Auth state changed:', currentUser);
+      setUser(currentUser);
+      if (currentUser) {
+        console.log('User is logged in:', currentUser.email);
+      }
+    });
+    return () => unsubscribe();
+  }, []);
 
   const handleLogin = async () => {
     console.log('Login button clicked');
@@ -147,27 +148,35 @@ export default function App() {
     }
   };
 
+  // ADD THIS - Check if user is admin
+  const isAdmin = user?.email === 'admin@graceburger.com'; // Change this to your admin email
+
   if (user) {
+    // If admin, show Admin Dashboard
+    if (isAdmin) {
+      return <AdminDashboard user={user} onSignOut={() => auth.signOut()} />;
+    }
+    // If regular user, show Menu Page
     return <MenuPage user={user} onSignOut={() => auth.signOut()} />;
   }
 
   return (
-  <div className="login-container">
-    {/* Notification Toast */}
-    {notification && (
-      <div className={`notification-toast ${notification.type}`}>
-        <div className="notification-content">
-          <CheckCircle size={20} />
-          <span>{notification.message}</span>
+    <div className="login-container">
+      {/* Notification Toast */}
+      {notification && (
+        <div className={`notification-toast ${notification.type}`}>
+          <div className="notification-content">
+            <CheckCircle size={20} />
+            <span>{notification.message}</span>
+          </div>
+          <button 
+            className="notification-close"
+            onClick={() => setNotification(null)}
+          >
+            <X size={16} />
+          </button>
         </div>
-        <button 
-          className="notification-close"
-          onClick={() => setNotification(null)}
-        >
-          <X size={16} />
-        </button>
-      </div>
-    )}
+      )}
 
       {/* Left Side - Welcome Section */}
       <div className="welcome-section" style={{ backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url(${bgImage})` }}>
@@ -260,9 +269,9 @@ export default function App() {
                 className="forgot-password" 
                 onClick={() => alert('Password reset feature coming soon!')}
                 style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-                >
+              >
                 Forgot Password?
-                </button>
+              </button>
             </div>
             
             <button onClick={handleLogin} className="submit-btn" disabled={loading}>
@@ -383,38 +392,38 @@ export default function App() {
                   onChange={(e) => setAgreeTerms(e.target.checked)}
                 />
                 <label htmlFor="terms">
-                I agree to the{' '}
-                <button 
+                  I agree to the{' '}
+                  <button 
                     type="button"
                     onClick={() => alert('Terms of Service coming soon!')}
                     style={{ 
-                    background: 'none', 
-                    border: 'none', 
-                    color: '#D4A027', 
-                    textDecoration: 'none',
-                    cursor: 'pointer',
-                    padding: 0,
-                    font: 'inherit'
+                      background: 'none', 
+                      border: 'none', 
+                      color: '#D4A027', 
+                      textDecoration: 'none',
+                      cursor: 'pointer',
+                      padding: 0,
+                      font: 'inherit'
                     }}
-                >
+                  >
                     Terms of Service
-                </button>
-                {' '}and{' '}
-                <button 
+                  </button>
+                  {' '}and{' '}
+                  <button 
                     type="button"
                     onClick={() => alert('Privacy Policy coming soon!')}
                     style={{ 
-                    background: 'none', 
-                    border: 'none', 
-                    color: '#D4A027', 
-                    textDecoration: 'none',
-                    cursor: 'pointer',
-                    padding: 0,
-                    font: 'inherit'
+                      background: 'none', 
+                      border: 'none', 
+                      color: '#D4A027', 
+                      textDecoration: 'none',
+                      cursor: 'pointer',
+                      padding: 0,
+                      font: 'inherit'
                     }}
-                >
+                  >
                     Privacy Policy
-                </button>
+                  </button>
                 </label>
               </div>
               
