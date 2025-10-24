@@ -1,9 +1,12 @@
-import React, { useState } from 'react';
-import { ShoppingCart, Search, LogOut, Plus, Minus, X } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ShoppingCart, Search, LogOut, Plus, Minus, X, ClipboardList } from 'lucide-react';
 import './MenuPage.css';
 import CheckoutPage from './CheckoutPage';
 import ReceiptPage from './Receipt';
+import OrderHistoryPage from './OrderHistoryPage';
 import { saveOrder } from './firebase';
+import { getTopSellingProducts } from './firebase-admin';
+import { subscribeToInventory } from './firebase-admin';
 
 import menuBg from './images/menu-image.jpg';
 import cdoBurger from './images/products/cdo-burger.jpg';
@@ -62,7 +65,78 @@ export default function MenuPage({ user, onSignOut }) {
   const [showItemModal, setShowItemModal] = useState(false);
   const [showCheckout, setShowCheckout] = useState(false);
   const [showReceipt, setShowReceipt] = useState(false);
+  const [showOrderHistory, setShowOrderHistory] = useState(false);
   const [orderData, setOrderData] = useState(null);
+  const [topProducts, setTopProducts] = useState([]);
+  const [inventory, setInventory] = useState([]);
+
+
+  // Load top selling products and subscribe to inventory
+  useEffect(() => {
+    loadTopProducts();
+    
+    // Subscribe to inventory changes
+    console.log('Setting up inventory subscription...');
+    const unsubscribe = subscribeToInventory((inventoryData) => {
+      console.log('Inventory updated:', inventoryData);
+      console.log('Inventory count:', inventoryData.length);
+      setInventory(inventoryData);
+    });
+
+    return () => {
+      console.log('Cleaning up inventory subscription');
+      unsubscribe();
+    };
+  }, []);
+
+  const loadTopProducts = async () => {
+    try {
+      const products = await getTopSellingProducts();
+      console.log('Top products:', products);
+      setTopProducts(products);
+    } catch (error) {
+      console.error('Error loading top products:', error);
+    }
+  };
+
+  // Check if item is sold out based on inventory
+  const isItemSoldOut = (item) => {
+    // If no ingredients defined, item is always available
+    if (!item.ingredients || item.ingredients.length === 0) {
+      return false;
+    }
+
+    // CRITICAL: If inventory collection is empty or not loaded,
+    // mark items with ingredients as SOLD OUT (no stock available)
+    if (!inventory || inventory.length === 0) {
+      console.log(`⚠️ No inventory data - ${item.name} is SOLD OUT`);
+      return true; // Changed from false to true
+    }
+
+    console.log(`Checking ${item.name}:`, {
+      ingredients: item.ingredients,
+      inventory: inventory.map(i => ({ name: i.name, stock: i.stock }))
+    });
+
+    // Check each ingredient
+    for (const ingredientName of item.ingredients) {
+      // Try to find ingredient in inventory (case-insensitive)
+      const inventoryItem = inventory.find(
+        inv => inv.name.toLowerCase().trim() === ingredientName.toLowerCase().trim()
+      );
+
+      console.log(`  - Checking ${ingredientName}:`, inventoryItem);
+
+      // If ingredient not found in inventory or stock is 0 or less, item is sold out
+      if (!inventoryItem || inventoryItem.stock <= 0) {
+        console.log(`  ❌ ${item.name} is SOLD OUT (${ingredientName} not available)`);
+        return true;
+      }
+    }
+
+    console.log(`  ✅ ${item.name} is available`);
+    return false;
+  };
 
   const menuItems = {
     'Burgers': [
@@ -74,10 +148,10 @@ export default function MenuPage({ user, onSignOut }) {
       { id: 6, name: 'Cheese Burger with Ham', price: 41, category: 'Burgers', image: cheeseBurgerHam, emoji: '🍔', description: 'Cheese and ham combo', ingredients: ['Patty', 'Cheese', 'Ham', 'Bun'] },
       { id: 7, name: 'Cheese Burger with Egg', price: 43, category: 'Burgers', image: cheeseBurgerEgg, emoji: '🍔', description: 'Cheese and egg delight', ingredients: ['Patty', 'Cheese', 'Egg', 'Bun'] },
       { id: 8, name: 'Cheese Burger with Bacon', price: 47, category: 'Burgers', image: cheeseBurgerBacon, emoji: '🍔', description: 'Triple threat: cheese, bacon, and patty', ingredients: ['Patty', 'Cheese', 'Bacon', 'Bun'] },
-      { id: 9, name: 'Ham Burger', price: 29, category: 'Burgers', image: hamBurger, emoji: '🍔', description: 'Simple and delicious ham burger', ingredients: ['Ham', 'Bun'] },
-      { id: 10, name: 'Ham Burger with Cheese', price: 36, category: 'Burgers', image: hamBurgerCheese, emoji: '🍔', description: 'Ham and cheese classic', ingredients: ['Ham', 'Cheese', 'Bun'] },
-      { id: 11, name: 'Ham Burger with Egg', price: 34, category: 'Burgers', image: hamBurgerEgg, emoji: '🍔', description: 'Ham and egg breakfast style', ingredients: ['Ham', 'Egg', 'Bun'] },
-      { id: 12, name: 'Hamburger With Cheese and Egg', price: 48, category: 'Burgers', image: hamBurgerCheeseEgg, emoji: '🍔', description: 'Loaded with ham, cheese, and egg', ingredients: ['Ham', 'Cheese', 'Egg', 'Bun'] },
+      { id: 9, name: 'Ham Burger', price: 29, category: 'Burgers', image: hamBurger, emoji: '🍔', description: 'Simple and delicious ham burger', ingredients: ['Ham', 'Bun', 'Patty'] },
+      { id: 10, name: 'Ham Burger with Cheese', price: 36, category: 'Burgers', image: hamBurgerCheese, emoji: '🍔', description: 'Ham and cheese classic', ingredients: ['Ham', 'Cheese', 'Bun', 'Patty'] },
+      { id: 11, name: 'Ham Burger with Egg', price: 34, category: 'Burgers', image: hamBurgerEgg, emoji: '🍔', description: 'Ham and egg breakfast style', ingredients: ['Ham', 'Egg', 'Bun', 'Patty'] },
+      { id: 12, name: 'Hamburger With Cheese and Egg', price: 48, category: 'Burgers', image: hamBurgerCheeseEgg, emoji: '🍔', description: 'Loaded with ham, cheese, and egg', ingredients: ['Ham', 'Cheese', 'Egg', 'Bun', 'Patty'] },
       { id: 13, name: 'Burger Bacon Ham', price: 52, category: 'Burgers', image: burgerBaconHam, emoji: '🍔', description: 'Bacon and ham power combo', ingredients: ['Patty', 'Bacon', 'Ham', 'Bun'] },
       { id: 24, name: 'Complete', price: 64, category: 'Burgers', image: complete, emoji: '🍔', tag: 'SIGNATURE', description: 'Our signature burger with everything!', ingredients: ['Patty', 'Cheese', 'Ham', 'Egg', 'Bun'] },
       { id: 25, name: 'Complete change Bacon', price: 62, category: 'Burgers', image: completeBacon, emoji: '🍔', description: 'Complete burger, bacon style', ingredients: ['Patty', 'Cheese', 'Bacon', 'Egg', 'Bun'] },
@@ -296,6 +370,16 @@ export default function MenuPage({ user, onSignOut }) {
     );
   }
 
+
+  // Show Order History Page
+  if (showOrderHistory) {
+    return (
+      <OrderHistoryPage
+        user={user}
+        onBack={() => setShowOrderHistory(false)}
+      />
+    );
+  }
   // Show Checkout Page
   if (showCheckout) {
     return (
@@ -334,6 +418,30 @@ export default function MenuPage({ user, onSignOut }) {
           </div>
 
           <div style={{ display: 'flex', gap: '1rem' }}>
+            <button 
+              onClick={() => setShowOrderHistory(true)}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: '#fff',
+                width: '40px',
+                height: '40px',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = '#D4A027';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = '#fff';
+              }}
+            >
+              <ClipboardList size={20} />
+            </button>
             <button 
               onClick={() => setShowCart(true)}
               style={{
@@ -410,6 +518,250 @@ export default function MenuPage({ user, onSignOut }) {
         </p>
       </section>
 
+
+      {/* Top 5 Most Ordered */}
+      {topProducts.length > 0 && (
+        <section style={{ 
+          maxWidth: '1400px', 
+          margin: '0 auto', 
+          padding: '3rem 2rem 2rem'
+        }}>
+          <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+            <span style={{ 
+              color: '#D4A027', 
+              fontSize: '0.8rem', 
+              letterSpacing: '3px', 
+              fontWeight: 600 
+            }}>
+              CUSTOMER FAVORITES
+            </span>
+            <h2 style={{ 
+              fontSize: '2.5rem', 
+              fontWeight: 900, 
+              margin: '0.5rem 0',
+              background: 'linear-gradient(135deg, #D4A027 0%, #FFD700 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text'
+            }}>
+              🔥 TOP 5 MOST ORDERED
+            </h2>
+            <p style={{ color: '#888', fontSize: '0.95rem' }}>
+              Our most popular items loved by customers
+            </p>
+          </div>
+
+          <div style={{ 
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+            gap: '1.5rem',
+            marginBottom: '1rem'
+          }}>
+            {topProducts.slice(0, 5).map((product, index) => {
+              // Find the full item details from menuItems
+              const allItems = Object.values(menuItems).flat();
+              const fullItem = allItems.find(item => item.name === product.name);
+              
+              if (!fullItem) return null;
+
+              return (
+                <div
+                  key={product.name}
+                  onClick={() => !isItemSoldOut(fullItem) && openItemModal(fullItem)}
+                  style={{
+                    opacity: isItemSoldOut(fullItem) ? 0.6 : 1,
+                    filter: isItemSoldOut(fullItem) ? 'grayscale(50%)' : 'none',
+                    cursor: isItemSoldOut(fullItem) ? 'not-allowed' : 'pointer',
+                    background: 'linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%)',
+                    border: '2px solid #D4A027',
+                    borderRadius: '16px',
+                    padding: '1.5rem',
+                    position: 'relative',
+                    transition: 'all 0.3s ease',
+                    overflow: 'hidden'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-8px)';
+                    e.currentTarget.style.boxShadow = '0 12px 40px rgba(212, 160, 39, 0.3)';
+                    e.currentTarget.style.borderColor = '#FFD700';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = 'none';
+                    e.currentTarget.style.borderColor = '#D4A027';
+                  }}
+                >
+                  {/* SOLD OUT Overlay for Top 5 */}
+                  {isItemSoldOut(fullItem) && (
+                    <div style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      background: 'rgba(0, 0, 0, 0.9)',
+                      borderRadius: '16px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      zIndex: 20
+                    }}>
+                      <div style={{
+                        transform: 'rotate(-15deg)',
+                        background: '#ff3333',
+                        color: '#fff',
+                        padding: '0.75rem 2.5rem',
+                        fontSize: '1.5rem',
+                        fontWeight: 'bold',
+                        letterSpacing: '2px',
+                        border: '3px solid #fff',
+                        boxShadow: '0 8px 24px rgba(255, 51, 51, 0.5)'
+                      }}>
+                        SOLD OUT
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Rank Badge */}
+                  <div style={{
+                    position: 'absolute',
+                    top: '-10px',
+                    right: '-10px',
+                    width: '50px',
+                    height: '50px',
+                    background: index === 0 ? 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)' : 
+                                index === 1 ? 'linear-gradient(135deg, #C0C0C0 0%, #808080 100%)' :
+                                index === 2 ? 'linear-gradient(135deg, #CD7F32 0%, #8B4513 100%)' :
+                                'linear-gradient(135deg, #D4A027 0%, #B8891F 100%)',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontWeight: 'bold',
+                    fontSize: '1.2rem',
+                    color: '#000',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                    border: '3px solid #0a0a0a',
+                    zIndex: 2
+                  }}>
+                    #{index + 1}
+                  </div>
+
+                  {/* Image */}
+                  {fullItem.image && (
+                    <div style={{
+                      width: '100%',
+                      height: '160px',
+                      borderRadius: '12px',
+                      overflow: 'hidden',
+                      marginBottom: '1rem',
+                      position: 'relative'
+                    }}>
+                      <img 
+                        src={fullItem.image} 
+                        alt={fullItem.name}
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover'
+                        }}
+                      />
+                      <div style={{
+                        position: 'absolute',
+                        top: '10px',
+                        left: '10px',
+                        background: 'rgba(0, 0, 0, 0.8)',
+                        padding: '0.25rem 0.75rem',
+                        borderRadius: '20px',
+                        fontSize: '0.75rem',
+                        fontWeight: 'bold',
+                        color: '#D4A027',
+                        border: '1px solid #D4A027'
+                      }}>
+                        ⭐ {product.quantity} SOLD
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Item Name */}
+                  <h3 style={{
+                    fontSize: '1.1rem',
+                    fontWeight: 'bold',
+                    margin: '0 0 0.5rem 0',
+                    color: '#fff',
+                    lineHeight: '1.3'
+                  }}>
+                    {fullItem.emoji} {fullItem.name}
+                  </h3>
+
+                  {/* Category */}
+                  <p style={{
+                    color: '#888',
+                    fontSize: '0.8rem',
+                    margin: '0 0 0.75rem 0'
+                  }}>
+                    {fullItem.category}
+                  </p>
+
+                  {/* Price and Add Button */}
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginTop: '1rem',
+                    paddingTop: '1rem',
+                    borderTop: '1px solid #333'
+                  }}>
+                    <span style={{
+                      fontSize: '1.5rem',
+                      fontWeight: 'bold',
+                      color: '#D4A027'
+                    }}>
+                      ₱{fullItem.price}
+                    </span>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (!isItemSoldOut(fullItem)) {
+                          addToCart(fullItem);
+                        }
+                      }}
+                      disabled={isItemSoldOut(fullItem)}
+                      style={{
+                        background: isItemSoldOut(fullItem) ? '#666' : '#D4A027',
+                        border: 'none',
+                        color: isItemSoldOut(fullItem) ? '#999' : '#000',
+                        padding: '0.5rem 1rem',
+                        borderRadius: '8px',
+                        cursor: isItemSoldOut(fullItem) ? 'not-allowed' : 'pointer',
+                        opacity: isItemSoldOut(fullItem) ? 0.5 : 1,
+                        fontWeight: 'bold',
+                        fontSize: '0.85rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        transition: 'all 0.3s ease'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = '#FFD700';
+                        e.currentTarget.style.transform = 'scale(1.05)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = '#D4A027';
+                        e.currentTarget.style.transform = 'scale(1)';
+                      }}
+                    >
+                      <Plus size={16} />
+                      ADD
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
       {/* Search & Filter */}
       <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '2rem' }}>
         <div style={{
@@ -469,15 +821,57 @@ export default function MenuPage({ user, onSignOut }) {
           gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', 
           gap: '2rem' 
         }}>
-          {filteredItems.map(item => (
-          <div key={item.id} className="menu-card" onClick={() => openItemModal(item)} style={{
+          {filteredItems.map(item => {
+            const soldOut = isItemSoldOut(item);
+            return (
+          <div 
+            key={item.id} 
+            className="menu-card" 
+            onClick={() => !soldOut && openItemModal(item)} 
+            style={{
             background: '#111',
             border: '1px solid #222',
             borderRadius: '12px',
             padding: '1.5rem',
             position: 'relative',
-            cursor: 'pointer'
+            cursor: soldOut ? 'not-allowed' : 'pointer',
+            opacity: soldOut ? 0.6 : 1,
+            filter: soldOut ? 'grayscale(50%)' : 'none'
           }}>
+            {/* SOLD OUT Overlay */}
+            {isItemSoldOut(item) && (
+              <div style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                background: 'rgba(0, 0, 0, 0.85)',
+                borderRadius: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 10,
+                pointerEvents: 'none'
+              }}>
+                <div style={{
+                  transform: 'rotate(-15deg)',
+                  background: '#ff3333',
+                  color: '#fff',
+                  padding: '1rem 3rem',
+                  fontSize: '1.8rem',
+                  fontWeight: 'bold',
+                  letterSpacing: '3px',
+                  border: '4px solid #fff',
+                  boxShadow: '0 8px 24px rgba(255, 51, 51, 0.5)',
+                  textAlign: 'center',
+                  lineHeight: '1'
+                }}>
+                  SOLD OUT
+                </div>
+              </div>
+            )}
+
             {item.tag && (
               <span style={{
                 position: 'absolute',
@@ -547,8 +941,9 @@ export default function MenuPage({ user, onSignOut }) {
                 <Plus size={16} /> Add
               </button>
               </div>
-            </div>
-          ))}
+          </div>
+            );
+          })}
         </div>
       </div>
 

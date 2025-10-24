@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Check, Download, Printer, Headphones } from 'lucide-react';
+import { Check, Download, Printer, Headphones, ArrowLeft, XCircle } from 'lucide-react';
 import { subscribeToOrderStatus } from './firebase-admin';
 
-export default function ReceiptPage({ orderData }) {
+export default function ReceiptPage({ orderData, onBack }) {
   const [currentOrder, setCurrentOrder] = useState(orderData);
   const [currentStatus, setCurrentStatus] = useState('received');
   
@@ -46,7 +46,18 @@ export default function ReceiptPage({ orderData }) {
     estimatedTime: '20-30 mins'
   };
 
-  const statuses = [
+  // Check if order is cancelled
+  const isCancelled = currentStatus === 'cancelled';
+
+  const statuses = isCancelled ? [
+    {
+      id: 'cancelled',
+      icon: '❌',
+      title: 'ORDER CANCELLED',
+      description: 'Your order has been cancelled by the admin. No charges applied.',
+      active: true
+    }
+  ] : [
     {
       id: 'received',
       icon: '📦',
@@ -91,6 +102,10 @@ export default function ReceiptPage({ orderData }) {
 
   // Calculate progress percentage
   const getProgressPercentage = () => {
+    if (currentStatus === 'cancelled') {
+      return '0%';
+    }
+    
     switch (currentStatus) {
       case 'received':
       case 'processing':
@@ -140,10 +155,48 @@ export default function ReceiptPage({ orderData }) {
         </div>
       </header>
 
+      {/* Back Button */}
       <div style={{ 
         maxWidth: '1400px', 
         margin: '0 auto', 
-        padding: '3rem 2rem',
+        padding: '2rem 2rem 0'
+      }}>
+        <button
+          onClick={onBack}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            background: 'transparent',
+            border: '1px solid #333',
+            color: '#fff',
+            padding: '0.75rem 1.5rem',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            fontSize: '0.95rem',
+            fontWeight: '500',
+            transition: 'all 0.3s ease'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = '#D4A027';
+            e.currentTarget.style.borderColor = '#D4A027';
+            e.currentTarget.style.color = '#000';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'transparent';
+            e.currentTarget.style.borderColor = '#333';
+            e.currentTarget.style.color = '#fff';
+          }}
+        >
+          <ArrowLeft size={20} />
+          Back to Menu
+        </button>
+      </div>
+
+      <div style={{ 
+        maxWidth: '1400px', 
+        margin: '0 auto', 
+        padding: '1rem 2rem 3rem',
         display: 'grid',
         gridTemplateColumns: '1fr 1fr',
         gap: '3rem'
@@ -162,7 +215,8 @@ export default function ReceiptPage({ orderData }) {
             <div style={{
               width: '80px',
               height: '80px',
-              background: currentStatus === 'completed' ? '#4CAF50' : '#D4A027',
+              background: currentStatus === 'cancelled' ? '#ff3333' : 
+                         currentStatus === 'completed' ? '#4CAF50' : '#D4A027',
               borderRadius: '12px',
               margin: '0 auto 2rem',
               display: 'flex',
@@ -170,11 +224,16 @@ export default function ReceiptPage({ orderData }) {
               justifyContent: 'center',
               transform: 'rotate(45deg)'
             }}>
-              <Check size={40} style={{ transform: 'rotate(-45deg)', color: '#000' }} />
+              {currentStatus === 'cancelled' ? (
+                <XCircle size={40} style={{ transform: 'rotate(-45deg)', color: '#fff' }} />
+              ) : (
+                <Check size={40} style={{ transform: 'rotate(-45deg)', color: '#000' }} />
+              )}
             </div>
 
             <h1 style={{
-              color: currentStatus === 'completed' ? '#4CAF50' : '#D4A027',
+              color: currentStatus === 'cancelled' ? '#ff3333' :
+                     currentStatus === 'completed' ? '#4CAF50' : '#D4A027',
               fontSize: '2.5rem',
               marginBottom: '1rem',
               letterSpacing: '3px',

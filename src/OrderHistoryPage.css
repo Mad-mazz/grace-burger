@@ -1,0 +1,117 @@
+/* OrderHistoryPage.css */
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0a0a0a;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #D4A027;
+}
+
+/* Input focus styles */
+input:focus,
+select:focus {
+  outline: none;
+  border-color: #D4A027 !important;
+  box-shadow: 0 0 0 2px rgba(212, 160, 39, 0.1);
+}
+
+/* Button hover animations */
+button {
+  transition: all 0.3s ease;
+}
+
+button:active {
+  transform: scale(0.98);
+}
+
+/* Loading animation */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.loading {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  /* Header adjustments */
+  div[style*="padding: 2rem"] {
+    padding: 1rem !important;
+  }
+
+  /* Title adjustments */
+  h1[style*="fontSize: '3rem'"] {
+    font-size: 2rem !important;
+  }
+
+  /* Filter tabs - stack on mobile */
+  div[style*="display: 'flex'"] > button {
+    font-size: 0.75rem !important;
+    padding: 0.5rem 1rem !important;
+  }
+
+  /* Search and sort - stack on mobile */
+  div[style*="display: 'flex'"][style*="justifyContent: 'space-between'"] {
+    flex-direction: column !important;
+  }
+
+  /* Order cards */
+  div[style*="padding: '1.5rem'"] {
+    padding: 1rem !important;
+  }
+
+  /* Order footer buttons - stack on mobile */
+  div[style*="display: 'flex'"][style*="gap: '0.75rem'"] {
+    flex-direction: column !important;
+    width: 100%;
+  }
+
+  div[style*="display: 'flex'"][style*="gap: '0.75rem'"] button {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  /* Make filter tabs scrollable on very small screens */
+  div[style*="display: 'flex'"][style*="gap: '1rem'"][style*="justifyContent: 'center'"] {
+    overflow-x: auto;
+    justify-content: flex-start !important;
+    padding-bottom: 0.5rem;
+  }
+
+  div[style*="display: 'flex'"][style*="gap: '1rem'"][style*="justifyContent: 'center'"] button {
+    white-space: nowrap;
+  }
+}
+
+/* Print styles for receipts */
+@media print {
+  button,
+  input,
+  select {
+    display: none !important;
+  }
+}

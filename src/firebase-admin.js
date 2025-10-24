@@ -334,7 +334,15 @@ export const completeOrder = async (orderId) => {
 export const cancelOrder = async (orderId) => {
   try {
     const orderRef = doc(db, 'orders', orderId);
-    await deleteDoc(orderRef);
+    
+    // Update status to cancelled instead of deleting
+    await updateDoc(orderRef, {
+      status: 'cancelled',
+      cancelledAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    });
+    
+    console.log('Order cancelled successfully:', orderId);
   } catch (error) {
     console.error('Error cancelling order:', error);
     throw error;
@@ -444,6 +452,135 @@ export const getTopSellingProducts = async () => {
     return topProducts;
   } catch (error) {
     console.error('Error getting top selling products:', error);
+    throw error;
+  }
+};
+
+// ==================== RETURN ORDER MANAGEMENT ====================
+
+// Request Order Return (Customer)
+export const requestOrderReturn = async (orderId, returnData) => {
+  try {
+    const orderRef = doc(db, 'orders', orderId);
+    await updateDoc(orderRef, {
+      returnRequested: true,
+      returnRequestedAt: serverTimestamp(),
+      returnReason: returnData.reason,
+      returnRequestedBy: returnData.requestedBy,
+      returnCustomerName: returnData.customerName,
+      returnAmount: returnData.orderAmount,
+      updatedAt: serverTimestamp()
+    });
+    console.log('Return request submitted for order:', orderId);
+  } catch (error) {
+    console.error('Error requesting return:', error);
+    throw error;
+  }
+};
+
+// Get All Return Requests (Admin)
+export const getReturnRequests = async () => {
+  try {
+    const ordersCollection = collection(db, 'orders');
+    const q = query(
+      ordersCollection,
+      where('returnRequested', '==', true)
+    );
+    
+    const snapshot = await getDocs(q);
+    const requests = snapshot.docs
+      .map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }))
+      .filter(order => !order.returned) // Filter out already returned orders
+      .sort((a, b) => {
+        // Sort by returnRequestedAt in descending order (newest first)
+        const dateA = a.returnRequestedAt?.toDate?.() || new Date(a.returnRequestedAt);
+        const dateB = b.returnRequestedAt?.toDate?.() || new Date(b.returnRequestedAt);
+        return dateB - dateA;
+      });
+    
+    return requests;
+  } catch (error) {
+    console.error('Error getting return requests:', error);
+    throw error;
+  }
+};
+
+// Approve Return Request (Admin)
+export const approveReturnRequest = async (orderId) => {
+  try {
+    const orderRef = doc(db, 'orders', orderId);
+    await updateDoc(orderRef, {
+      returned: true,
+      returnApprovedAt: serverTimestamp(),
+      returnRequested: false,
+      updatedAt: serverTimestamp()
+    });
+    console.log('Return approved for order:', orderId);
+    return true;
+  } catch (error) {
+    console.error('Error approving return:', error);
+    throw error;
+  }
+};
+
+// Reject Return Request (Admin)
+export const rejectReturnRequest = async (orderId, reason) => {
+  try {
+    const orderRef = doc(db, 'orders', orderId);
+    await updateDoc(orderRef, {
+      returnRequested: false,
+      returnRejected: true,
+      returnRejectedAt: serverTimestamp(),
+      returnRejectionReason: reason,
+      updatedAt: serverTimestamp()
+    });
+    console.log('Return rejected for order:', orderId);
+    return true;
+  } catch (error) {
+    console.error('Error rejecting return:', error);
+    throw error;
+  }
+};
+
+// Get Revenue Statistics (Excluding Returns)
+export const getRevenueStats = async () => {
+  try {
+    const ordersCollection = collection(db, 'orders');
+    const ordersSnapshot = await getDocs(ordersCollection);
+    
+    let totalRevenue = 0;
+    let returnedAmount = 0;
+    let orderCount = 0;
+    let returnCount = 0;
+    
+    ordersSnapshot.docs.forEach(doc => {
+      const order = doc.data();
+      if (order.status !== 'cancelled') {
+        const amount = order.totalAmount || 0;
+        totalRevenue += amount;
+        orderCount++;
+        
+        if (order.returned) {
+          returnedAmount += amount;
+          returnCount++;
+        }
+      }
+    });
+    
+    const netRevenue = totalRevenue - returnedAmount;
+    
+    return {
+      totalRevenue,
+      returnedAmount,
+      netRevenue,
+      orderCount,
+      returnCount
+    };
+  } catch (error) {
+    console.error('Error getting revenue stats:', error);
     throw error;
   }
 };

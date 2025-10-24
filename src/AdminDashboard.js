@@ -12,7 +12,8 @@ import {
   Trash2,
   AlertCircle,
   Save,
-  XCircle
+  XCircle,
+  BarChart3
 } from 'lucide-react';
 import {
   subscribeToOrders,
@@ -25,7 +26,11 @@ import {
   updateInventoryItem,
   deleteInventoryItem,
   getTopSellingProducts,
-  initializeInventory
+  initializeInventory,
+  getReturnRequests,
+  approveReturnRequest,
+  rejectReturnRequest,
+  getRevenueStats
 } from './firebase-admin';
 
 export default function AdminDashboard({ user, onSignOut }) {
@@ -42,6 +47,55 @@ export default function AdminDashboard({ user, onSignOut }) {
   const [editingItem, setEditingItem] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [returnRequests, setReturnRequests] = useState([]);
+  const [revenueStats, setRevenueStats] = useState({
+    totalRevenue: 0,
+    returnedAmount: 0,
+    netRevenue: 0,
+    orderCount: 0,
+    returnCount: 0
+  });
+  const [monthlySales, setMonthlySales] = useState([]);
+
+  // Calculate monthly sales data
+  useEffect(() => {
+    if (orders.length > 0) {
+      const currentDate = new Date();
+      const currentMonth = currentDate.getMonth();
+      const currentYear = currentDate.getFullYear();
+      
+      // Get number of days in current month
+      const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+      
+      // Initialize sales data for each day
+      const salesByDay = Array.from({ length: daysInMonth }, (_, i) => ({
+        day: i + 1,
+        sales: 0,
+        orders: 0
+      }));
+      
+      // Calculate sales for each day
+      orders.forEach(order => {
+        const orderDate = order.timestamp?.toDate ? order.timestamp.toDate() : new Date(order.timestamp);
+        const orderMonth = orderDate.getMonth();
+        const orderYear = orderDate.getFullYear();
+        const orderDay = orderDate.getDate();
+        
+        // Only include orders from current month and completed orders
+        if (orderMonth === currentMonth && 
+            orderYear === currentYear && 
+            order.status?.toLowerCase() === 'completed') {
+          const dayIndex = orderDay - 1;
+          if (dayIndex >= 0 && dayIndex < daysInMonth) {
+            salesByDay[dayIndex].sales += order.totalAmount || 0;
+            salesByDay[dayIndex].orders += 1;
+          }
+        }
+      });
+      
+      setMonthlySales(salesByDay);
+    }
+  }, [orders]);
 
   // Subscribe to real-time orders
   useEffect(() => {
@@ -111,14 +165,79 @@ export default function AdminDashboard({ user, onSignOut }) {
   };
 
   const handleCancelOrder = async (orderId) => {
-    if (window.confirm('Are you sure you want to cancel and delete this order?')) {
+    if (window.confirm('Are you sure you want to cancel this order?\n\nThe order will be marked as CANCELLED and kept in the database for records.')) {
       try {
-        await cancelOrder(orderId); // This now deletes the order
-        alert('Order cancelled and deleted successfully!');
+        await cancelOrder(orderId); // This now marks order as cancelled
+        alert('Order cancelled successfully!\n\nThe order status has been updated to CANCELLED.');
       } catch (error) {
         console.error('Error cancelling order:', error);
         alert('Failed to cancel order: ' + error.message);
       }
+    }
+  };
+
+
+  // Load return requests
+  useEffect(() => {
+    loadReturnRequests();
+    loadRevenueStats();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const loadReturnRequests = async () => {
+    try {
+      console.log('Loading return requests...');
+      const requests = await getReturnRequests();
+      console.log('Return requests loaded:', requests.length, 'requests');
+      console.log('Requests:', requests);
+      setReturnRequests(requests);
+    } catch (error) {
+      console.error('Error loading return requests:', error);
+      console.error('Error details:', error.message);
+    }
+  };
+
+  const loadRevenueStats = async () => {
+    try {
+      const stats = await getRevenueStats();
+      setRevenueStats(stats);
+    } catch (error) {
+      console.error('Error loading revenue stats:', error);
+    }
+  };
+
+  const handleApproveReturn = async (orderId, orderAmount) => {
+    const confirmed = window.confirm(
+      `Approve this return request?\n\nAmount to refund: ₱${orderAmount}\n\nThis will deduct from total revenue.`
+    );
+
+    if (confirmed) {
+      try {
+        await approveReturnRequest(orderId);
+        alert('Return approved successfully!');
+        loadReturnRequests();
+        loadRevenueStats();
+      } catch (error) {
+        console.error('Error approving return:', error);
+        alert('Failed to approve return. Please try again.');
+      }
+    }
+  };
+
+  const handleRejectReturn = async (orderId) => {
+    const reason = prompt('Please provide reason for rejection:');
+    if (!reason || reason.trim() === '') {
+      alert('Rejection reason is required');
+      return;
+    }
+
+    try {
+      await rejectReturnRequest(orderId, reason);
+      alert('Return request rejected.');
+      loadReturnRequests();
+    } catch (error) {
+      console.error('Error rejecting return:', error);
+      alert('Failed to reject return. Please try again.');
     }
   };
 
@@ -225,6 +344,7 @@ export default function AdminDashboard({ user, onSignOut }) {
           {[
             { id: 'orders', icon: <ShoppingBag size={20} />, label: 'Orders', badge: stats.pendingOrders },
             { id: 'inventory', icon: <Package size={20} />, label: 'Inventory', badge: null },
+            { id: 'returns', icon: <AlertCircle size={20} />, label: 'Return Requests', badge: returnRequests.length > 0 ? returnRequests.length : null },
             { id: 'analytics', icon: <TrendingUp size={20} />, label: 'Analytics', badge: null },
           ].map((item) => (
             <button
@@ -359,11 +479,13 @@ export default function AdminDashboard({ user, onSignOut }) {
                       <h3 style={{ color: '#D4A027', fontSize: '1.2rem' }}>{order.orderNumber}</h3>
                       <span style={{
                         background: 
+                          order.status?.toLowerCase() === 'cancelled' ? '#ff3333' :
                           order.status === 'received' || order.status === 'PROCESSING' ? '#D4A027' : 
                           order.status === 'preparing' ? '#FF9800' : 
                           order.status === 'ready' ? '#4CAF50' : 
+                          order.status === 'completed' ? '#4CAF50' :
                           '#666',
-                        color: order.status === 'ready' ? '#fff' : '#000',
+                        color: order.status?.toLowerCase() === 'cancelled' || order.status === 'ready' || order.status === 'completed' ? '#fff' : '#000',
                         padding: '0.25rem 0.75rem',
                         borderRadius: '20px',
                         fontSize: '0.75rem',
@@ -396,7 +518,17 @@ export default function AdminDashboard({ user, onSignOut }) {
 
                   {/* RIGHT SIDE - Action Buttons */}
                   <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    {(order.status?.toLowerCase() === 'received' || order.status?.toLowerCase() === 'processing') && (
+                    {order.status?.toLowerCase() === 'cancelled' && (
+                      <span style={{
+                        color: '#ff3333',
+                        padding: '0.75rem 1rem',
+                        fontSize: '0.9rem',
+                        fontWeight: 'bold'
+                      }}>
+                        ❌ CANCELLED
+                      </span>
+                    )}
+                    {order.status?.toLowerCase() !== 'cancelled' && (order.status?.toLowerCase() === 'received' || order.status?.toLowerCase() === 'processing') && (
                       <button
                         onClick={() => handleAcceptOrder(order)}
                         style={{
@@ -417,7 +549,7 @@ export default function AdminDashboard({ user, onSignOut }) {
                       </button>
                     )}
                     
-                    {order.status?.toLowerCase() === 'preparing' && (
+                    {order.status?.toLowerCase() !== 'cancelled' && order.status?.toLowerCase() === 'preparing' && (
                       <button
                         onClick={() => handleCompleteOrder(order.id)}
                         style={{
@@ -842,7 +974,259 @@ export default function AdminDashboard({ user, onSignOut }) {
         )}
 
         {/* Analytics Page */}
-        {currentPage === 'analytics' && (
+        {currentPage === 'returns' && (
+          <div style={{ flex: 1, padding: '2rem' }}>
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center',
+              marginBottom: '2rem'
+            }}>
+              <div>
+                <h2 style={{ fontSize: '1.8rem', margin: '0 0 0.5rem 0' }}>Return Requests</h2>
+                <p style={{ color: '#666', margin: 0 }}>Manage customer return requests</p>
+              </div>
+              <div style={{
+                background: '#111',
+                padding: '1rem 1.5rem',
+                borderRadius: '8px',
+                border: '1px solid #222'
+              }}>
+                <p style={{ color: '#666', fontSize: '0.85rem', margin: '0 0 0.25rem 0' }}>
+                  Pending Returns
+                </p>
+                <p style={{ color: '#D4A027', fontSize: '1.5rem', fontWeight: 'bold', margin: 0 }}>
+                  {returnRequests.length}
+                </p>
+              </div>
+            </div>
+
+            {/* Revenue Stats */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+              gap: '1rem',
+              marginBottom: '2rem'
+            }}>
+              <div style={{
+                background: '#111',
+                padding: '1.5rem',
+                borderRadius: '8px',
+                border: '1px solid #222'
+              }}>
+                <p style={{ color: '#666', fontSize: '0.85rem', margin: '0 0 0.5rem 0' }}>
+                  Total Revenue
+                </p>
+                <p style={{ color: '#fff', fontSize: '1.8rem', fontWeight: 'bold', margin: 0 }}>
+                  ₱{revenueStats.totalRevenue.toLocaleString()}
+                </p>
+              </div>
+              <div style={{
+                background: '#111',
+                padding: '1.5rem',
+                borderRadius: '8px',
+                border: '1px solid #ff6b6b'
+              }}>
+                <p style={{ color: '#ff6b6b', fontSize: '0.85rem', margin: '0 0 0.5rem 0' }}>
+                  Returned Amount
+                </p>
+                <p style={{ color: '#ff6b6b', fontSize: '1.8rem', fontWeight: 'bold', margin: 0 }}>
+                  -₱{revenueStats.returnedAmount.toLocaleString()}
+                </p>
+              </div>
+              <div style={{
+                background: '#111',
+                padding: '1.5rem',
+                borderRadius: '8px',
+                border: '1px solid #D4A027'
+              }}>
+                <p style={{ color: '#D4A027', fontSize: '0.85rem', margin: '0 0 0.5rem 0' }}>
+                  Net Revenue
+                </p>
+                <p style={{ color: '#D4A027', fontSize: '1.8rem', fontWeight: 'bold', margin: 0 }}>
+                  ₱{revenueStats.netRevenue.toLocaleString()}
+                </p>
+              </div>
+              <div style={{
+                background: '#111',
+                padding: '1.5rem',
+                borderRadius: '8px',
+                border: '1px solid #222'
+              }}>
+                <p style={{ color: '#666', fontSize: '0.85rem', margin: '0 0 0.5rem 0' }}>
+                  Return Rate
+                </p>
+                <p style={{ color: '#fff', fontSize: '1.8rem', fontWeight: 'bold', margin: 0 }}>
+                  {revenueStats.orderCount > 0 
+                    ? ((revenueStats.returnCount / revenueStats.orderCount) * 100).toFixed(1)
+                    : 0}%
+                </p>
+              </div>
+            </div>
+
+            {/* Return Requests List */}
+            {returnRequests.length === 0 ? (
+              <div style={{
+                background: '#111',
+                padding: '3rem',
+                borderRadius: '8px',
+                textAlign: 'center',
+                border: '1px solid #222'
+              }}>
+                <AlertCircle size={48} style={{ color: '#666', margin: '0 auto 1rem' }} />
+                <p style={{ color: '#666', fontSize: '1.1rem' }}>No pending return requests</p>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {returnRequests.map(request => (
+                  <div
+                    key={request.id}
+                    style={{
+                      background: '#111',
+                      padding: '1.5rem',
+                      borderRadius: '8px',
+                      border: '1px solid #ff6b6b'
+                    }}
+                  >
+                    <div style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'flex-start',
+                      marginBottom: '1rem'
+                    }}>
+                      <div>
+                        <h3 style={{
+                          color: '#D4A027',
+                          fontSize: '1.2rem',
+                          margin: '0 0 0.5rem 0'
+                        }}>
+                          {request.orderNumber}
+                        </h3>
+                        <p style={{ color: '#999', fontSize: '0.9rem', margin: '0 0 0.5rem 0' }}>
+                          Customer: {request.returnCustomerName}
+                        </p>
+                        <p style={{ color: '#999', fontSize: '0.9rem', margin: 0 }}>
+                          Requested: {new Date(request.returnRequestedAt?.toDate?.() || request.returnRequestedAt).toLocaleString()}
+                        </p>
+                      </div>
+                      <div style={{
+                        background: 'rgba(255, 107, 107, 0.1)',
+                        padding: '0.5rem 1rem',
+                        borderRadius: '8px',
+                        border: '1px solid #ff6b6b'
+                      }}>
+                        <p style={{ color: '#ff6b6b', fontWeight: 'bold', fontSize: '1.2rem', margin: 0 }}>
+                          ₱{request.returnAmount || request.totalAmount}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Order Items */}
+                    <div style={{
+                      background: '#0a0a0a',
+                      padding: '1rem',
+                      borderRadius: '8px',
+                      marginBottom: '1rem'
+                    }}>
+                      <p style={{ color: '#666', fontSize: '0.85rem', marginBottom: '0.5rem' }}>
+                        Order Items:
+                      </p>
+                      {request.items?.map((item, index) => (
+                        <div
+                          key={index}
+                          style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            padding: '0.5rem 0',
+                            borderBottom: index < request.items.length - 1 ? '1px solid #222' : 'none'
+                          }}
+                        >
+                          <span style={{ color: '#fff' }}>
+                            {item.quantity}x {item.name}
+                          </span>
+                          <span style={{ color: '#D4A027' }}>₱{item.total}</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Return Reason */}
+                    <div style={{
+                      background: '#0a0a0a',
+                      padding: '1rem',
+                      borderRadius: '8px',
+                      marginBottom: '1rem'
+                    }}>
+                      <p style={{ color: '#666', fontSize: '0.85rem', marginBottom: '0.5rem' }}>
+                        Return Reason:
+                      </p>
+                      <p style={{ color: '#fff', margin: 0 }}>
+                        {request.returnReason}
+                      </p>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div style={{ display: 'flex', gap: '1rem' }}>
+                      <button
+                        onClick={() => handleApproveReturn(request.id, request.returnAmount || request.totalAmount)}
+                        style={{
+                          flex: 1,
+                          padding: '0.75rem',
+                          background: '#4CAF50',
+                          border: 'none',
+                          borderRadius: '8px',
+                          color: '#fff',
+                          fontWeight: 'bold',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '0.5rem',
+                          transition: 'all 0.3s ease'
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.background = '#45a049'}
+                        onMouseLeave={(e) => e.currentTarget.style.background = '#4CAF50'}
+                      >
+                        <Check size={18} />
+                        APPROVE RETURN
+                      </button>
+                      <button
+                        onClick={() => handleRejectReturn(request.id)}
+                        style={{
+                          flex: 1,
+                          padding: '0.75rem',
+                          background: 'transparent',
+                          border: '1px solid #f44336',
+                          borderRadius: '8px',
+                          color: '#f44336',
+                          fontWeight: 'bold',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '0.5rem',
+                          transition: 'all 0.3s ease'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = '#f44336';
+                          e.currentTarget.style.color = '#fff';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = 'transparent';
+                          e.currentTarget.style.color = '#f44336';
+                        }}
+                      >
+                        <X size={18} />
+                        REJECT
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+                {currentPage === 'analytics' && (
           <div>
             <h1 style={{ fontSize: '2rem', fontWeight: 'bold', marginBottom: '2rem', color: '#D4A027' }}>
               SALES ANALYTICS
@@ -864,6 +1248,196 @@ export default function AdminDashboard({ user, onSignOut }) {
                 <p style={{ color: '#999', fontSize: '0.85rem', marginBottom: '0.5rem' }}>COMPLETED</p>
                 <h3 style={{ fontSize: '2rem', fontWeight: 'bold', color: '#D4A027' }}>{stats.completedToday}</h3>
               </div>
+            </div>
+
+            {/* Monthly Sales Bar Chart */}
+            <div style={{ 
+              background: '#1a1a1a', 
+              borderRadius: '12px', 
+              padding: '2rem', 
+              border: '1px solid #333',
+              marginBottom: '2rem'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '2rem' }}>
+                <BarChart3 size={28} color="#D4A027" />
+                <h2 style={{ fontSize: '1.5rem', color: '#D4A027', margin: 0 }}>
+                  SALES THIS MONTH
+                </h2>
+              </div>
+              
+              {monthlySales.length > 0 ? (
+                <div>
+                  {/* Chart Container */}
+                  <div style={{ 
+                    display: 'flex', 
+                    alignItems: 'flex-end', 
+                    gap: '4px',
+                    height: '300px',
+                    padding: '1rem 0',
+                    borderBottom: '2px solid #333',
+                    position: 'relative'
+                  }}>
+                    {monthlySales.map((data, index) => {
+                      const maxSales = Math.max(...monthlySales.map(d => d.sales), 1);
+                      const barHeight = (data.sales / maxSales) * 100;
+                      const isToday = data.day === new Date().getDate();
+                      
+                      return (
+                        <div
+                          key={index}
+                          style={{
+                            flex: 1,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'flex-end',
+                            height: '100%',
+                            position: 'relative',
+                            minWidth: '20px'
+                          }}
+                        >
+                          {/* Tooltip on hover */}
+                          <div
+                            style={{
+                              position: 'absolute',
+                              bottom: '100%',
+                              left: '50%',
+                              transform: 'translateX(-50%)',
+                              background: '#000',
+                              color: '#D4A027',
+                              padding: '0.5rem',
+                              borderRadius: '4px',
+                              border: '1px solid #D4A027',
+                              fontSize: '0.75rem',
+                              whiteSpace: 'nowrap',
+                              opacity: 0,
+                              pointerEvents: 'none',
+                              transition: 'opacity 0.2s',
+                              zIndex: 10,
+                              marginBottom: '0.5rem'
+                            }}
+                            className="bar-tooltip"
+                          >
+                            Day {data.day}<br/>
+                            ₱{data.sales}<br/>
+                            {data.orders} orders
+                          </div>
+                          
+                          {/* Bar */}
+                          <div
+                            style={{
+                              width: '100%',
+                              height: `${barHeight}%`,
+                              background: isToday 
+                                ? 'linear-gradient(180deg, #FFD700 0%, #D4A027 100%)'
+                                : data.sales > 0 
+                                  ? 'linear-gradient(180deg, #D4A027 0%, #B8891F 100%)'
+                                  : '#333',
+                              borderRadius: '4px 4px 0 0',
+                              minHeight: data.sales > 0 ? '2px' : '0',
+                              transition: 'all 0.3s ease',
+                              cursor: 'pointer',
+                              position: 'relative'
+                            }}
+                            onMouseEnter={(e) => {
+                              const tooltip = e.currentTarget.previousSibling;
+                              if (tooltip) tooltip.style.opacity = '1';
+                              e.currentTarget.style.transform = 'scaleY(1.05)';
+                              e.currentTarget.style.filter = 'brightness(1.2)';
+                            }}
+                            onMouseLeave={(e) => {
+                              const tooltip = e.currentTarget.previousSibling;
+                              if (tooltip) tooltip.style.opacity = '0';
+                              e.currentTarget.style.transform = 'scaleY(1)';
+                              e.currentTarget.style.filter = 'brightness(1)';
+                            }}
+                          >
+                            {/* Sales amount on top of bar for high values */}
+                            {data.sales > 0 && barHeight > 15 && (
+                              <div style={{
+                                position: 'absolute',
+                                top: '-20px',
+                                left: '50%',
+                                transform: 'translateX(-50%)',
+                                fontSize: '0.65rem',
+                                color: '#D4A027',
+                                fontWeight: 'bold',
+                                whiteSpace: 'nowrap'
+                              }}>
+                                ₱{data.sales}
+                              </div>
+                            )}
+                          </div>
+                          
+                          {/* Day label */}
+                          {(index === 0 || data.day % 5 === 0 || data.day === new Date().getDate()) && (
+                            <div style={{
+                              marginTop: '0.5rem',
+                              fontSize: '0.7rem',
+                              color: isToday ? '#D4A027' : '#666',
+                              fontWeight: isToday ? 'bold' : 'normal'
+                            }}>
+                              {data.day}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  
+                  {/* Summary Stats */}
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+                    gap: '1rem',
+                    marginTop: '1.5rem'
+                  }}>
+                    <div style={{ textAlign: 'center' }}>
+                      <p style={{ color: '#666', fontSize: '0.75rem', marginBottom: '0.25rem' }}>
+                        TOTAL SALES
+                      </p>
+                      <p style={{ color: '#D4A027', fontSize: '1.3rem', fontWeight: 'bold', margin: 0 }}>
+                        ₱{monthlySales.reduce((sum, day) => sum + day.sales, 0).toLocaleString()}
+                      </p>
+                    </div>
+                    <div style={{ textAlign: 'center' }}>
+                      <p style={{ color: '#666', fontSize: '0.75rem', marginBottom: '0.25rem' }}>
+                        TOTAL ORDERS
+                      </p>
+                      <p style={{ color: '#D4A027', fontSize: '1.3rem', fontWeight: 'bold', margin: 0 }}>
+                        {monthlySales.reduce((sum, day) => sum + day.orders, 0)}
+                      </p>
+                    </div>
+                    <div style={{ textAlign: 'center' }}>
+                      <p style={{ color: '#666', fontSize: '0.75rem', marginBottom: '0.25rem' }}>
+                        AVG PER DAY
+                      </p>
+                      <p style={{ color: '#D4A027', fontSize: '1.3rem', fontWeight: 'bold', margin: 0 }}>
+                        ₱{Math.round(
+                          monthlySales.reduce((sum, day) => sum + day.sales, 0) / 
+                          new Date().getDate()
+                        ).toLocaleString()}
+                      </p>
+                    </div>
+                    <div style={{ textAlign: 'center' }}>
+                      <p style={{ color: '#666', fontSize: '0.75rem', marginBottom: '0.25rem' }}>
+                        BEST DAY
+                      </p>
+                      <p style={{ color: '#D4A027', fontSize: '1.3rem', fontWeight: 'bold', margin: 0 }}>
+                        Day {monthlySales.reduce((max, day) => 
+                          day.sales > max.sales ? day : max, 
+                          { day: 0, sales: 0 }
+                        ).day}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ textAlign: 'center', padding: '3rem', color: '#666' }}>
+                  <BarChart3 size={48} style={{ margin: '0 auto 1rem', opacity: 0.3 }} />
+                  <p>No sales data for this month yet</p>
+                </div>
+              )}
             </div>
 
             <div style={{ background: '#1a1a1a', borderRadius: '12px', padding: '2rem', border: '1px solid #333' }}>
