@@ -261,7 +261,7 @@ export default function CheckoutPage({ cart, totalPrice, onBack, onPlaceOrder })
                     color: selectedPayment === 'cash' ? '#D4A027' : '#fff',
                     marginBottom: '0.25rem'
                   }}>
-                    CASH ON DELIVERY
+                    PAY CASH IN THE STORE
                   </h3>
                   <p style={{ 
                     color: '#999',
@@ -288,7 +288,7 @@ export default function CheckoutPage({ cart, totalPrice, onBack, onPlaceOrder })
                     fontSize: '0.85rem',
                     lineHeight: '1.5'
                   }}>
-                    Your order is being received by Ate Grace. Please prepare the exact amount and pay upon delivery to process your order.
+                    Your order is being received by Ate Grace. Please prepare the exact amount and pay in the store to process your order.
                   </p>
                 </div>
               )}

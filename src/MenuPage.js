@@ -297,7 +297,7 @@ export default function MenuPage({ user, onSignOut }) {
           name: 'Grace Burger CDO',
           street: '123 Main Street',
           barangay: 'Barangay Carmen',
-          city: 'Cagayan de Oro City'
+          city: 'Abangan Norte, Marilao, Bulacan'
         },
         estimatedTime: '20-30 mins',
         contactNumber: '+63 912 345 6789'
@@ -329,7 +329,7 @@ export default function MenuPage({ user, onSignOut }) {
           name: 'Grace Burger CDO',
           street: '123 Main Street',
           barangay: 'Barangay Carmen',
-          city: 'Cagayan de Oro City'
+          city: 'Abangan Norte, Marilao, Bulacan'
         },
         estimatedTime: '20-30 mins'
       };
@@ -977,7 +977,7 @@ export default function MenuPage({ user, onSignOut }) {
               lineHeight: '1.6',
               marginBottom: '1.5rem'
             }}>
-              Crafting exceptional burgers and hot dogs with passion and precision. Every meal is made with premium ingredients and served with pride since 2024.
+              Crafting exceptional burgers and hot dogs with passion and precision. Every meal is made with premium ingredients and served with pride since 2011.
             </p>
             <div style={{ display: 'flex', gap: '1rem' }}>
               {['f', '📷', '🐦', '▶️'].map((icon, i) => (
@@ -1081,7 +1081,7 @@ export default function MenuPage({ user, onSignOut }) {
                 fontSize: '0.9rem'
               }}>
                 <span style={{ color: '#D4A027' }}>📍</span>
-                Cagayan de Oro City
+                Abangan Norte, Marilao, Bulacan
               </li>
               <li style={{
                 marginBottom: '0.75rem',
@@ -1092,7 +1092,7 @@ export default function MenuPage({ user, onSignOut }) {
                 fontSize: '0.9rem'
               }}>
                 <span style={{ color: '#D4A027' }}>📞</span>
-                +63 XXX-XXX-XXXX
+                +63 123-465-7890
               </li>
               <li style={{
                 marginBottom: '0.75rem',

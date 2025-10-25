@@ -2,10 +2,22 @@ import React, { useState, useEffect } from 'react';
 import { Check, Download, Printer, Headphones, ArrowLeft, XCircle } from 'lucide-react';
 import { subscribeToOrderStatus } from './firebase-admin';
 
-export default function ReceiptPage({ orderData, onBack }) {
+export default function ReceiptPage({ orderData, onBack, onBackToMenu }) {
+  // Use whichever callback is provided for compatibility
+  const handleBack = onBackToMenu || onBack;
   const [currentOrder, setCurrentOrder] = useState(orderData);
   const [currentStatus, setCurrentStatus] = useState('received');
   
+  // Debug logging
+  useEffect(() => {
+    console.log('Receipt page mounted/updated with props:', {
+      hasOrderData: !!orderData,
+      hasOnBack: !!onBack,
+      hasOnBackToMenu: !!onBackToMenu,
+      hasHandleBack: !!handleBack
+    });
+  }, [orderData, onBack, onBackToMenu, handleBack]);
+
   // Subscribe to real-time order status updates
   useEffect(() => {
     if (orderData?.id) {
@@ -162,7 +174,26 @@ export default function ReceiptPage({ orderData, onBack }) {
         padding: '2rem 2rem 0'
       }}>
         <button
-          onClick={onBack}
+          onClick={() => {
+            console.log('Back button clicked!');
+            console.log('handleBack type:', typeof handleBack);
+            console.log('handleBack value:', handleBack);
+            if (handleBack && typeof handleBack === 'function') {
+              try {
+                handleBack();
+                console.log('handleBack executed successfully');
+              } catch (error) {
+                console.error('Error executing handleBack:', error);
+              }
+            } else {
+              console.error('handleBack is not a function!', {
+                onBack,
+                onBackToMenu,
+                handleBack
+              });
+              alert('Back button error - check console');
+            }
+          }}
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -670,7 +701,7 @@ export default function ReceiptPage({ orderData, onBack }) {
               }}>
                 {currentStatus === 'completed' ? 
                   `Thank you for your order ${order.orderNumber || currentOrder?.orderNumber}! We hope you enjoyed your meal from Grace Burger!` :
-                  `Please show this order number ${order.orderNumber || currentOrder?.orderNumber} when picking up your order. Our store is located at 123 Main Street, Barangay Carmen. Look for the golden Grace Burger sign!`}
+                  `Please show this order number ${order.orderNumber || currentOrder?.orderNumber} when picking up your order. Our store is located at 123 Main Street, Abangan Norte, Marilao, Bulacan. Look for the golden Grace Burger sign!`}
               </p>
             </div>
 

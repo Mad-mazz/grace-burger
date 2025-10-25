@@ -267,18 +267,7 @@
   text-align: center;
   margin-top: 2rem;
   color: #999;
-  font-size: 0.9rem;
-}
-
-.create-account-link {
-  background: none;
-  border: none;
-  color: #D4A027;
-  font-weight: 600;
-  cursor: pointer;
-  margin-left: 0.5rem;
-  text-decoration: underline;
-}
+  font-size: 0.9rem;}
 
 .modal-overlay {
   position: fixed;
@@ -292,6 +281,16 @@
   justify-content: center;
   z-index: 1000;
   padding: 2rem;
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .modal-content {
@@ -304,7 +303,19 @@
   max-height: 90vh;
   overflow-y: auto;
   position: relative;
+  animation: modalSlideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transform-origin: center;
 }
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.8) translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }}
 
 .close-modal {
   position: absolute;
@@ -460,5 +471,55 @@
     left: 1rem;
     min-width: auto;
     max-width: none;
+  }
+}
+/* Create Account Button Animation */
+.create-account-link {
+  background: none;
+  border: none;
+  color: #D4A027;
+  font-weight: 600;
+  cursor: pointer;
+  margin-left: 0.5rem;
+  text-decoration: underline;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.create-account-link:hover {
+  color: #e6b12f;
+  transform: translateY(-2px);
+}
+
+.create-account-link:active {
+  transform: scale(0.95);
+}
+
+/* Modal Exit Animation */
+.modal-overlay.closing {
+  animation: fadeOut 0.3s ease-out forwards;
+}
+
+.modal-overlay.closing .modal-content {
+  animation: modalSlideOut 0.3s ease-out forwards;
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes modalSlideOut {
+  from {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.8) translateY(30px);
   }
 }

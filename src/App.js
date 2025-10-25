@@ -11,6 +11,7 @@ export default function App() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [showCreateAccount, setShowCreateAccount] = useState(false);
+  const [isClosingModal, setIsClosingModal] = useState(false);
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -37,6 +38,15 @@ export default function App() {
     setTimeout(() => {
       setNotification(null);
     }, 5000); // Hide after 5 seconds
+  };
+
+  // Function to close modal with animation
+  const closeModal = () => {
+    setIsClosingModal(true);
+    setTimeout(() => {
+      setShowCreateAccount(false);
+      setIsClosingModal(false);
+    }, 300); // Match animation duration
   };
 
   useEffect(() => {
@@ -113,7 +123,7 @@ export default function App() {
       const user = await signUpWithEmail(signupData.email, signupData.password, signupData.fullName);
       console.log('Signup successful!', user);
       showNotification(`Account created successfully! Welcome, ${signupData.fullName}!`, 'success');
-      setShowCreateAccount(false);
+      closeModal();
     } catch (error) {
       console.error('Signup error:', error);
       setError(error.message);
@@ -204,7 +214,7 @@ export default function App() {
             </div>
             <div className="feature-item">
               <span className="feature-icon">⭐</span>
-              <span>Exclusive member deals</span>
+              <span>Quality Foods</span>
             </div>
           </div>
         </div>
@@ -293,11 +303,11 @@ export default function App() {
 
       {/* Create Account Modal */}
       {showCreateAccount && (
-        <div className="modal-overlay">
-          <div className="modal-content">
+        <div className={`modal-overlay ${isClosingModal ? 'closing' : ''}`} onClick={closeModal}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <button 
               className="close-modal"
-              onClick={() => setShowCreateAccount(false)}
+              onClick={closeModal}
             >
               <X size={20} />
             </button>
