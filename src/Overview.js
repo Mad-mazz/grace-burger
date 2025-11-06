@@ -26,7 +26,6 @@ const Overview = ({ onLoginClick }) => {
   const features = [
     'Easy mobile ordering',
     'Real-time order tracking',
-    'Exclusive app discounts',
     'Save your favorites',
     'Faster checkout'
   ];
@@ -86,7 +85,7 @@ const Overview = ({ onLoginClick }) => {
               DIFFERENCE
             </h2>
             <p className="story-text">
-              Founded by Ate Grace in the heart of Cagayan de Oro, Grace Burger began with a
+              Founded by Ate Grace in the heart of Abangan Norte, Grace Burger began with a
               simple mission: to create the perfect burger that brings people together. What
               started as a small food cart has grown into a beloved local favorite, serving
               thousands of happy customers with our signature recipes.
@@ -103,7 +102,7 @@ const Overview = ({ onLoginClick }) => {
               <div className="image-placeholder">
                 <span style={{ fontSize: '100px' }}>🍔</span>
               </div>
-              <div className="since-badge">SINCE 2021</div>
+              <div className="since-badge">SINCE 2011</div>
             </div>
           </div>
         </div>
@@ -180,7 +179,7 @@ const Overview = ({ onLoginClick }) => {
               <span className="logo-text">GRACE BURGER</span>
             </div>
             <p className="footer-description">
-              Premium burgers and hot dogs made with love in Cagayan de Oro since 2021
+              Premium burgers and hot dogs made with love in Abangan Norte since 2011
             </p>
           </div>
           
@@ -207,8 +206,7 @@ const Overview = ({ onLoginClick }) => {
           <div className="footer-section">
             <h3 className="footer-title">Hours</h3>
             <ul className="footer-hours">
-              <li>Monday - Friday: 10am - 10pm</li>
-              <li>Saturday - Sunday: 10am - 11pm</li>
+              <li>Monday - Saturday: 8am - 5pm</li>
             </ul>
           </div>
         </div>
