@@ -1,5 +1,10 @@
 import React from 'react';
 import './Overview.css';
+import storyImage from './images/2011.jpg';
+import completeImage from './images/products/complete.jpg';
+import cheeseburgerImage from './images/products/cheese-burger.jpg';
+import baconBurgerImage from './images/products/burger-bacon.jpg';
+import phoneImage from './images/phone.jpg';
 
 const Overview = ({ onLoginClick }) => {
   const burgers = [
@@ -7,19 +12,22 @@ const Overview = ({ onLoginClick }) => {
       id: 1,
       name: 'THE COMPLETE',
       description: 'Our ultimate creation featuring premium beef, crispy bacon, aged cheddar, savory ham, and a farm-fresh egg',
-      price: '₱64'
+      price: '₱64',
+      image: completeImage
     },
     {
       id: 2,
       name: 'CHEESE BURGER',
       description: 'Classic beef patty with melted cheddar cheese, fresh lettuce, and our signature sauce',
-      price: '₱35'
+      price: '₱35',
+      image: cheeseburgerImage
     },
     {
       id: 3,
       name: 'BACON BURGER',
       description: 'Juicy beef patty topped with crispy bacon strips and our special smoky sauce',
-      price: '₱42'
+      price: '₱42',
+      image: baconBurgerImage
     }
   ];
 
@@ -31,24 +39,37 @@ const Overview = ({ onLoginClick }) => {
   ];
 
   // Handle APK download
-  const handleDownloadApp = () => {
+  const handleDownloadApp = async () => {
+    const apkPath = '/android-app/gburger-app.apk';
+    
     try {
-      // Create a link element
-      const link = document.createElement('a');
-      link.href = '/android-app/gburger-app.apk';
-      link.download = 'gburger-app.apk';
-      link.target = '_blank';
+      // Check if file exists before downloading
+      const response = await fetch(apkPath, { method: 'HEAD' });
       
-      // Append to body, click, and remove
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
-      // Optional: Show a console message
-      console.log('Downloading Grace Burger APK...');
+      if (response.ok) {
+        console.log('✅ APK file found! Starting download...');
+        
+        // Create download link
+        const link = document.createElement('a');
+        link.href = apkPath;
+        link.download = 'gburger-app.apk';
+        link.target = '_blank';
+        
+        // Trigger download
+        document.body.appendChild(link);
+        link.click();
+        
+        // Cleanup
+        setTimeout(() => {
+          document.body.removeChild(link);
+        }, 100);
+      } else {
+        console.error('❌ APK file not found! Status:', response.status);
+        alert('App file not found. Please make sure gburger-app.apk is in the public/android-app folder.');
+      }
     } catch (error) {
-      console.error('Error downloading APK:', error);
-      alert('Unable to download the app. Please try again later.');
+      console.error('❌ Error downloading APK:', error);
+      alert('Unable to download the app. Please try again later or contact support.');
     }
   };
 
@@ -122,7 +143,16 @@ const Overview = ({ onLoginClick }) => {
           <div className="story-image-container">
             <div className="story-image">
               <div className="image-placeholder">
-                <span style={{ fontSize: '100px' }}>🍔</span>
+                <img 
+                  src={storyImage} 
+                  alt="Grace Burger Story" 
+                  style={{ 
+                    width: '100%', 
+                    height: '100%', 
+                    objectFit: 'cover',
+                    borderRadius: '12px'
+                  }} 
+                />
               </div>
               <div className="since-badge">SINCE 2011</div>
             </div>
@@ -141,9 +171,15 @@ const Overview = ({ onLoginClick }) => {
             {burgers.map((burger) => (
               <div key={burger.id} className="burger-card">
                 <div className="burger-image">
-                  <div className="burger-image-placeholder">
-                    <span style={{ fontSize: '120px' }}>🍔</span>
-                  </div>
+                  <img 
+                    src={burger.image} 
+                    alt={burger.name}
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover'
+                    }}
+                  />
                 </div>
                 <div className="burger-info">
                   <h3 className="burger-name">{burger.name}</h3>
@@ -161,7 +197,7 @@ const Overview = ({ onLoginClick }) => {
         <div className="app-container">
           <div className="app-content">
             <p className="app-subtitle">— NOW AVAILABLE —</p>
-            <h2 className="app-title">GET OUR MOBILE APP</h2>
+            <h2 className="app-title">GET OUR ANDROID MOBILE APP</h2>
             <p className="app-description">
               Order faster, track deliveries, and get exclusive app-only deals with Grace
               Burger for Android
@@ -185,7 +221,15 @@ const Overview = ({ onLoginClick }) => {
           <div className="app-image-container">
             <div className="app-image">
               <div className="phone-placeholder">
-                <span style={{ fontSize: '200px' }}>📱</span>
+                <img 
+                  src={phoneImage} 
+                  alt="Grace Burger Mobile App"
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'contain'
+                  }}
+                />
               </div>
             </div>
           </div>

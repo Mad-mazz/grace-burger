@@ -115,9 +115,10 @@
   justify-content: center;
   text-align: center;
   background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.7)), 
-              url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800"><rect fill="%232a2a2a" width="1200" height="800"/></svg>');
+              url('./images/overview-bg.jpg');
   background-size: cover;
   background-position: center;
+  background-repeat: no-repeat;
 }
 
 .hero-overlay {
