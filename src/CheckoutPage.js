@@ -1,4 +1,4 @@
-// CheckoutPage.js - CORRECTED FINAL VERSION
+// CheckoutPage.js - WITH 13-DIGIT REFERENCE NUMBER VALIDATION
 import React, { useState } from 'react';
 import { ChevronLeft, Copy, Check } from 'lucide-react';
 import qrCode from './images/qr-code.jpg';
@@ -7,6 +7,7 @@ export default function CheckoutPage({ cart, totalPrice, onBack, onPlaceOrder })
   const [selectedPayment, setSelectedPayment] = useState('cash');
   const [copied, setCopied] = useState(false);
   const [gcashReference, setGcashReference] = useState('');
+  const [referenceError, setReferenceError] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const gcashNumber = '09918428234';
 
@@ -16,11 +17,45 @@ export default function CheckoutPage({ cart, totalPrice, onBack, onPlaceOrder })
     setTimeout(() => setCopied(false), 2000);
   };
 
+  // Handle reference number input - only allow numbers
+  const handleReferenceChange = (e) => {
+    const value = e.target.value;
+    
+    // Only allow numbers
+    const numbersOnly = value.replace(/[^0-9]/g, '');
+    
+    // Limit to 13 digits
+    const limitedValue = numbersOnly.slice(0, 13);
+    
+    setGcashReference(limitedValue);
+    
+    // Clear error when user starts typing
+    if (referenceError) {
+      setReferenceError('');
+    }
+  };
+
+  // Validate reference number
+  const validateReferenceNumber = () => {
+    if (!gcashReference.trim()) {
+      setReferenceError('Please enter your GCash reference number');
+      return false;
+    }
+    
+    if (gcashReference.length !== 13) {
+      setReferenceError('Reference number must be exactly 13 digits');
+      return false;
+    }
+    
+    return true;
+  };
+
   const handlePlaceOrder = () => {
     // Validate GCash reference if GCash is selected
-    if (selectedPayment === 'gcash' && !gcashReference.trim()) {
-      alert('Please enter your GCash reference number');
-      return;
+    if (selectedPayment === 'gcash') {
+      if (!validateReferenceNumber()) {
+        return;
+      }
     }
 
     setIsProcessing(true);
@@ -98,7 +133,7 @@ export default function CheckoutPage({ cart, totalPrice, onBack, onPlaceOrder })
               marginBottom: '0.5rem',
               letterSpacing: '2px'
             }}>
-              YOUR ORDER
+              ORDER REVIEW
             </h2>
             <p style={{ color: '#999', marginBottom: '2rem' }}>Review your items</p>
 
@@ -107,57 +142,40 @@ export default function CheckoutPage({ cart, totalPrice, onBack, onPlaceOrder })
               marginBottom: '2rem'
             }}></div>
 
-            {/* Order Items */}
+            {/* Cart Items */}
             <div style={{ marginBottom: '2rem' }}>
-              {cart.map(item => (
-                <div key={item.id} style={{
-                  display: 'flex',
-                  gap: '1rem',
-                  marginBottom: '1.5rem',
-                  paddingBottom: '1.5rem',
-                  borderBottom: '1px solid #222'
-                }}>
-                  <img 
-                    src={item.image} 
-                    alt={item.name}
-                    style={{
-                      width: '80px',
-                      height: '80px',
-                      borderRadius: '8px',
-                      objectFit: 'cover'
-                    }}
-                  />
+              {cart.map((item) => (
+                <div
+                  key={item.id}
+                  style={{
+                    background: '#0a0a0a',
+                    borderRadius: '8px',
+                    padding: '1rem',
+                    marginBottom: '1rem',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    border: '1px solid #222'
+                  }}
+                >
                   <div style={{ flex: 1 }}>
                     <h3 style={{ 
-                      fontSize: '1.1rem', 
-                      marginBottom: '0.5rem',
-                      color: '#fff'
+                      fontSize: '1rem',
+                      color: '#fff',
+                      marginBottom: '0.25rem'
                     }}>
                       {item.name}
                     </h3>
-                    <div style={{ 
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '1rem',
-                      fontSize: '0.9rem',
-                      color: '#999'
+                    <p style={{ 
+                      color: '#999',
+                      fontSize: '0.85rem'
                     }}>
-                      <span>₱{item.price} each</span>
-                      <span>×</span>
-                      <span style={{ 
-                        background: '#1a1a1a',
-                        padding: '0.25rem 0.75rem',
-                        borderRadius: '4px',
-                        color: '#D4A027',
-                        fontWeight: 'bold'
-                      }}>
-                        {item.quantity}
-                      </span>
-                    </div>
+                      ₱{item.price} × {item.quantity}
+                    </p>
                   </div>
-                  <div style={{ 
+                  <div style={{
                     color: '#D4A027',
-                    fontSize: '1.3rem',
+                    fontSize: '1.1rem',
                     fontWeight: 'bold'
                   }}>
                     ₱{item.price * item.quantity}
@@ -168,26 +186,37 @@ export default function CheckoutPage({ cart, totalPrice, onBack, onPlaceOrder })
 
             {/* Total */}
             <div style={{
-              background: '#1a1a1a',
-              padding: '1.5rem',
+              background: '#0a0a0a',
+              border: '2px solid #D4A027',
               borderRadius: '8px',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center'
+              padding: '1.5rem'
             }}>
-              <span style={{ fontSize: '1.2rem' }}>Total:</span>
-              <span style={{ 
-                color: '#D4A027',
-                fontSize: '2rem',
-                fontWeight: 'bold'
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
               }}>
-                ₱{totalPrice}
-              </span>
+                <span style={{ 
+                  color: '#D4A027',
+                  fontSize: '1.2rem',
+                  fontWeight: 'bold',
+                  letterSpacing: '1px'
+                }}>
+                  TOTAL
+                </span>
+                <span style={{
+                  color: '#D4A027',
+                  fontSize: '1.8rem',
+                  fontWeight: 'bold'
+                }}>
+                  ₱{totalPrice}
+                </span>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Right Side - Payment Method */}
+        {/* Right Side - Payment */}
         <div>
           <div style={{
             background: '#111',
@@ -462,25 +491,56 @@ export default function CheckoutPage({ cart, totalPrice, onBack, onPlaceOrder })
                     marginBottom: '0.5rem',
                     letterSpacing: '1px'
                   }}>
-                    ENTER REFERENCE NUMBER *
+                    ENTER REFERENCE NUMBER (13 DIGITS) *
                   </label>
                   <input
                     type="text"
-                    placeholder="Reference number from GCash"
+                    placeholder="Enter 13-digit reference number"
                     value={gcashReference}
-                    onChange={(e) => setGcashReference(e.target.value)}
+                    onChange={handleReferenceChange}
+                    maxLength="13"
                     style={{
                       width: '100%',
                       padding: '1rem',
                       background: '#1a1a1a',
-                      border: '1px solid #333',
+                      border: `1px solid ${referenceError ? '#ff4444' : '#333'}`,
                       borderRadius: '8px',
                       color: '#fff',
                       fontSize: '1rem',
                       outline: 'none',
-                      boxSizing: 'border-box'
+                      boxSizing: 'border-box',
+                      letterSpacing: '2px',
+                      fontWeight: '500'
                     }}
                   />
+                  
+                  {/* Character counter and validation message */}
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginTop: '0.5rem'
+                  }}>
+                    <span style={{
+                      fontSize: '0.75rem',
+                      color: referenceError ? '#ff4444' : '#666'
+                    }}>
+                      {referenceError || `${gcashReference.length}/13 digits`}
+                    </span>
+                    
+                    {gcashReference.length === 13 && (
+                      <span style={{
+                        fontSize: '0.75rem',
+                        color: '#4CAF50',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.25rem'
+                      }}>
+                        <Check size={14} />
+                        Valid
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
             )}

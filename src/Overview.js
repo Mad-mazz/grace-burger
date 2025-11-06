@@ -30,6 +30,28 @@ const Overview = ({ onLoginClick }) => {
     'Faster checkout'
   ];
 
+  // Handle APK download
+  const handleDownloadApp = () => {
+    try {
+      // Create a link element
+      const link = document.createElement('a');
+      link.href = '/android-app/gburger-app.apk';
+      link.download = 'gburger-app.apk';
+      link.target = '_blank';
+      
+      // Append to body, click, and remove
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Optional: Show a console message
+      console.log('Downloading Grace Burger APK...');
+    } catch (error) {
+      console.error('Error downloading APK:', error);
+      alert('Unable to download the app. Please try again later.');
+    }
+  };
+
   return (
     <div className="overview-container">
       {/* Header */}
@@ -52,7 +74,7 @@ const Overview = ({ onLoginClick }) => {
               <span className="icon">👤</span>
               LOGIN
             </button>
-            <button className="btn-app">
+            <button className="btn-app" onClick={handleDownloadApp}>
               <span className="icon">📱</span>
               GET THE APP
             </button>
@@ -154,7 +176,7 @@ const Overview = ({ onLoginClick }) => {
               ))}
             </ul>
             
-            <button className="btn-download">
+            <button className="btn-download" onClick={handleDownloadApp}>
               <span className="download-icon">📱</span>
               DOWNLOAD FOR ANDROID
             </button>
