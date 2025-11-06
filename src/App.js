@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Eye, EyeOff, X, CheckCircle } from 'lucide-react';
 import bgImage from './images/bg-image.jpg';
 import { signInWithGoogle, signUpWithEmail, signInWithEmail, auth } from './firebase';
-import { onAuthStateChanged } from 'firebase/auth';
+import { onAuthStateChanged, sendPasswordResetEmail } from 'firebase/auth';
 import './App.css';
 import MenuPage from './MenuPage';
 import AdminDashboard from './AdminDashboard'; // ADD THIS
@@ -13,6 +13,10 @@ export default function App() {
   const [showCreateAccount, setShowCreateAccount] = useState(false);
   const [isClosingModal, setIsClosingModal] = useState(false);
   const [agreeTerms, setAgreeTerms] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
+  const [showTerms, setShowTerms] = useState(false);
+  const [showPrivacy, setShowPrivacy] = useState(false);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -47,6 +51,56 @@ export default function App() {
       setShowCreateAccount(false);
       setIsClosingModal(false);
     }, 300); // Match animation duration
+  };
+
+  // Handle Password Reset
+  const handlePasswordReset = async () => {
+    if (!resetEmail) {
+      setError('Please enter your email address');
+      showNotification('Please enter your email address', 'error');
+      return;
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(resetEmail)) {
+      setError('Please enter a valid email address');
+      showNotification('Please enter a valid email address', 'error');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
+    try {
+      await sendPasswordResetEmail(auth, resetEmail);
+      showNotification('Password reset email sent! Check your inbox.', 'success');
+      setShowForgotPassword(false);
+      setResetEmail('');
+    } catch (error) {
+      console.error('Password reset error:', error);
+      
+      let errorMessage = 'Failed to send reset email.';
+      
+      switch (error.code) {
+        case 'auth/user-not-found':
+          errorMessage = 'No account found with this email address.';
+          break;
+        case 'auth/invalid-email':
+          errorMessage = 'Invalid email address format.';
+          break;
+        case 'auth/too-many-requests':
+          errorMessage = 'Too many requests. Please try again later.';
+          break;
+        default:
+          errorMessage = error.message;
+      }
+      
+      setError(errorMessage);
+      showNotification(errorMessage, 'error');
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -84,8 +138,36 @@ export default function App() {
       showNotification(`Welcome back, ${user.displayName || user.email}!`, 'success');
     } catch (error) {
       console.error('Login error:', error);
-      setError(error.message);
-      showNotification(error.message, 'error');
+      
+      // User-friendly error messages
+      let errorMessage = 'Login failed. Please try again.';
+      
+      switch (error.code) {
+        case 'auth/invalid-credential':
+        case 'auth/wrong-password':
+        case 'auth/user-not-found':
+          errorMessage = 'Incorrect email or password. Please check your credentials and try again.';
+          break;
+        case 'auth/invalid-email':
+          errorMessage = 'Invalid email address format.';
+          break;
+        case 'auth/user-disabled':
+          errorMessage = 'This account has been disabled. Please contact support.';
+          break;
+        case 'auth/too-many-requests':
+          errorMessage = 'Too many failed login attempts. Please try again later.';
+          break;
+        case 'auth/network-request-failed':
+          errorMessage = 'Network error. Please check your internet connection.';
+          break;
+        default:
+          // Only show the Firebase error in console, not to user
+          console.error('Firebase error code:', error.code);
+          errorMessage = 'Login failed. Please try again.';
+      }
+      
+      setError(errorMessage);
+      showNotification(errorMessage, 'error');
     } finally {
       setLoading(false);
     }
@@ -126,8 +208,33 @@ export default function App() {
       closeModal();
     } catch (error) {
       console.error('Signup error:', error);
-      setError(error.message);
-      showNotification(error.message, 'error');
+      
+      // User-friendly error messages
+      let errorMessage = 'Failed to create account. Please try again.';
+      
+      switch (error.code) {
+        case 'auth/email-already-in-use':
+          errorMessage = 'This email is already registered. Please login or use a different email.';
+          break;
+        case 'auth/invalid-email':
+          errorMessage = 'Invalid email address format.';
+          break;
+        case 'auth/weak-password':
+          errorMessage = 'Password is too weak. Please use a stronger password.';
+          break;
+        case 'auth/operation-not-allowed':
+          errorMessage = 'Email/password accounts are not enabled. Please contact support.';
+          break;
+        case 'auth/network-request-failed':
+          errorMessage = 'Network error. Please check your internet connection.';
+          break;
+        default:
+          console.error('Firebase error code:', error.code);
+          errorMessage = 'Failed to create account. Please try again.';
+      }
+      
+      setError(errorMessage);
+      showNotification(errorMessage, 'error');
     } finally {
       setLoading(false);
     }
@@ -144,15 +251,36 @@ export default function App() {
       showNotification(`Successfully signed in via Google! Welcome, ${user.displayName}!`, 'success');
     } catch (error) {
       console.error('Google sign-in error:', error);
-      setError(error.message);
       
-      if (error.code === 'auth/unauthorized-domain') {
-        showNotification('Error: localhost is not authorized. Please add it to Firebase Console', 'error');
-      } else if (error.code === 'auth/popup-closed-by-user') {
-        showNotification('Sign-in cancelled', 'error');
-      } else {
-        showNotification(error.message, 'error');
+      // User-friendly error messages
+      let errorMessage = 'Google sign-in failed. Please try again.';
+      
+      switch (error.code) {
+        case 'auth/unauthorized-domain':
+          errorMessage = 'This domain is not authorized. Please contact support.';
+          break;
+        case 'auth/popup-closed-by-user':
+          errorMessage = 'Sign-in cancelled. Please try again.';
+          break;
+        case 'auth/popup-blocked':
+          errorMessage = 'Popup blocked by browser. Please allow popups and try again.';
+          break;
+        case 'auth/account-exists-with-different-credential':
+          errorMessage = 'An account already exists with the same email. Please sign in using your original method.';
+          break;
+        case 'auth/cancelled-popup-request':
+          errorMessage = 'Only one popup request is allowed at a time.';
+          break;
+        case 'auth/network-request-failed':
+          errorMessage = 'Network error. Please check your internet connection.';
+          break;
+        default:
+          console.error('Firebase error code:', error.code);
+          errorMessage = 'Google sign-in failed. Please try again.';
       }
+      
+      setError(errorMessage);
+      showNotification(errorMessage, 'error');
     } finally {
       setLoading(false);
     }
@@ -277,7 +405,7 @@ export default function App() {
               <button 
                 type="button"
                 className="forgot-password" 
-                onClick={() => alert('Password reset feature coming soon!')}
+                onClick={() => setShowForgotPassword(true)}
                 style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
               >
                 Forgot Password?
@@ -405,7 +533,7 @@ export default function App() {
                   I agree to the{' '}
                   <button 
                     type="button"
-                    onClick={() => alert('Terms of Service coming soon!')}
+                    onClick={() => setShowTerms(true)}
                     style={{ 
                       background: 'none', 
                       border: 'none', 
@@ -421,7 +549,7 @@ export default function App() {
                   {' '}and{' '}
                   <button 
                     type="button"
-                    onClick={() => alert('Privacy Policy coming soon!')}
+                    onClick={() => setShowPrivacy(true)}
                     style={{ 
                       background: 'none', 
                       border: 'none', 
@@ -441,6 +569,340 @@ export default function App() {
                 {loading ? 'CREATING ACCOUNT...' : 'CREATE ACCOUNT'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Forgot Password Modal */}
+      {showForgotPassword && (
+        <div className="modal-overlay" onClick={() => setShowForgotPassword(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <button 
+              className="close-modal"
+              onClick={() => setShowForgotPassword(false)}
+            >
+              <X size={20} />
+            </button>
+            
+            <h2 className="modal-title">RESET PASSWORD</h2>
+            <p className="modal-subtitle">Enter your email address and we'll send you a link to reset your password</p>
+            
+            {error && (
+              <div className="error-box">
+                {error}
+              </div>
+            )}
+            
+            <div className="reset-password-form">
+              <div className="form-group">
+                <label>EMAIL ADDRESS</label>
+                <input
+                  type="email"
+                  placeholder="your@email.com"
+                  value={resetEmail}
+                  onChange={(e) => setResetEmail(e.target.value)}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      handlePasswordReset();
+                    }
+                  }}
+                />
+              </div>
+              
+              <button 
+                onClick={handlePasswordReset} 
+                className="submit-btn" 
+                disabled={loading}
+              >
+                {loading ? 'SENDING...' : 'SEND RESET LINK'}
+              </button>
+
+              <div style={{ 
+                textAlign: 'center', 
+                marginTop: '1.5rem',
+                color: '#999',
+                fontSize: '0.9rem'
+              }}>
+                Remember your password?{' '}
+                <button
+                  type="button"
+                  onClick={() => setShowForgotPassword(false)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#D4A027',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    textDecoration: 'underline',
+                    font: 'inherit'
+                  }}
+                >
+                  Back to Login
+                </button>
+              </div>
+            </div>
+
+            <div style={{
+              marginTop: '2rem',
+              padding: '1rem',
+              background: '#1a1a0a',
+              border: '1px solid #333',
+              borderRadius: '8px'
+            }}>
+              <p style={{ color: '#ccc', fontSize: '0.85rem', marginBottom: '0.5rem' }}>
+                <strong style={{ color: '#D4A027' }}>📧 What happens next?</strong>
+              </p>
+              <ul style={{ 
+                color: '#999', 
+                fontSize: '0.85rem', 
+                marginLeft: '1.5rem',
+                lineHeight: '1.6' 
+              }}>
+                <li>Check your email inbox</li>
+                <li>Click the reset link in the email</li>
+                <li>Create a new password</li>
+                <li>Login with your new password</li>
+              </ul>
+              <p style={{ 
+                color: '#999', 
+                fontSize: '0.8rem', 
+                marginTop: '0.75rem',
+                fontStyle: 'italic' 
+              }}>
+                Note: The reset link expires in 1 hour. Check your spam folder if you don't see the email.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Terms of Service Modal */}
+      {showTerms && (
+        <div className="modal-overlay" onClick={() => setShowTerms(false)}>
+          <div className="policy-modal-content" onClick={(e) => e.stopPropagation()}>
+            <button 
+              className="close-modal"
+              onClick={() => setShowTerms(false)}
+            >
+              <X size={20} />
+            </button>
+            
+            <h2 className="modal-title">TERMS OF SERVICE</h2>
+            <p className="modal-subtitle">Last updated: October 30, 2025</p>
+            
+            <div className="policy-content">
+              <section>
+                <h3>1. Acceptance of Terms</h3>
+                <p>By accessing and using Grace Burger's online ordering system, you accept and agree to be bound by the terms and provision of this agreement.</p>
+              </section>
+
+              <section>
+                <h3>2. Use of Service</h3>
+                <p>Our service allows you to:</p>
+                <ul>
+                  <li>Browse our menu and view product information</li>
+                  <li>Place orders for pickup</li>
+                  <li>Track your order status in real-time</li>
+                  <li>View your order history</li>
+                </ul>
+              </section>
+
+              <section>
+                <h3>3. Account Registration</h3>
+                <p>To use our service, you must:</p>
+                <ul>
+                  <li>Provide accurate and complete information</li>
+                  <li>Maintain the security of your account</li>
+                  <li>Be at least 13 years old</li>
+                  <li>Accept responsibility for all activities under your account</li>
+                </ul>
+              </section>
+
+              <section>
+                <h3>4. Orders and Payments</h3>
+                <ul>
+                  <li>All orders are subject to availability</li>
+                  <li>Prices are subject to change without notice</li>
+                  <li>We accept Cash on Store and GCash payments</li>
+                  <li>Orders may be cancelled by the restaurant if items are unavailable</li>
+                </ul>
+              </section>
+
+              <section>
+                <h3>5. Cancellation Policy</h3>
+                <p>Grace Burger reserves the right to cancel orders at any time for various reasons including but not limited to:</p>
+                <ul>
+                  <li>Unavailability of ingredients</li>
+                  <li>Payment issues</li>
+                  <li>Suspicious or fraudulent activity</li>
+                </ul>
+              </section>
+
+              <section>
+                <h3>6. User Conduct</h3>
+                <p>You agree not to:</p>
+                <ul>
+                  <li>Use the service for any illegal purpose</li>
+                  <li>Interfere with or disrupt the service</li>
+                  <li>Attempt to gain unauthorized access</li>
+                  <li>Impersonate any person or entity</li>
+                </ul>
+              </section>
+
+              <section>
+                <h3>7. Intellectual Property</h3>
+                <p>All content, including logos, designs, text, and images, is the property of Grace Burger and is protected by copyright laws.</p>
+              </section>
+
+              <section>
+                <h3>8. Limitation of Liability</h3>
+                <p>Grace Burger shall not be liable for any indirect, incidental, special, consequential, or punitive damages resulting from your use of the service.</p>
+              </section>
+
+              <section>
+                <h3>9. Changes to Terms</h3>
+                <p>We reserve the right to modify these terms at any time. Continued use of the service after changes constitutes acceptance of the new terms.</p>
+              </section>
+
+              <section>
+                <h3>10. Contact Information</h3>
+                <p>For questions about these Terms of Service, please contact us at:</p>
+                <p><strong>Email:</strong> support@graceburger.com</p>
+                <p><strong>Phone:</strong> +63 912 345 6789</p>
+              </section>
+            </div>
+
+            <button 
+              onClick={() => setShowTerms(false)}
+              className="submit-btn"
+              style={{ marginTop: '2rem' }}
+            >
+              I UNDERSTAND
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Privacy Policy Modal */}
+      {showPrivacy && (
+        <div className="modal-overlay" onClick={() => setShowPrivacy(false)}>
+          <div className="policy-modal-content" onClick={(e) => e.stopPropagation()}>
+            <button 
+              className="close-modal"
+              onClick={() => setShowPrivacy(false)}
+            >
+              <X size={20} />
+            </button>
+            
+            <h2 className="modal-title">PRIVACY POLICY</h2>
+            <p className="modal-subtitle">Last updated: October 30, 2025</p>
+            
+            <div className="policy-content">
+              <section>
+                <h3>1. Information We Collect</h3>
+                <p>We collect information that you provide directly to us, including:</p>
+                <ul>
+                  <li><strong>Account Information:</strong> Name, email address, password</li>
+                  <li><strong>Order Information:</strong> Items ordered, delivery preferences, payment method</li>
+                  <li><strong>Contact Information:</strong> Phone number for order notifications</li>
+                </ul>
+              </section>
+
+              <section>
+                <h3>2. How We Use Your Information</h3>
+                <p>We use the information we collect to:</p>
+                <ul>
+                  <li>Process and fulfill your orders</li>
+                  <li>Send order confirmations and updates</li>
+                  <li>Communicate with you about our products and services</li>
+                  <li>Improve our website and customer service</li>
+                  <li>Prevent fraud and ensure security</li>
+                </ul>
+              </section>
+
+              <section>
+                <h3>3. Information Sharing</h3>
+                <p>We do not sell, trade, or rent your personal information to third parties. We may share your information only:</p>
+                <ul>
+                  <li>With your consent</li>
+                  <li>To comply with legal obligations</li>
+                  <li>To protect our rights and safety</li>
+                </ul>
+              </section>
+
+              <section>
+                <h3>4. Data Security</h3>
+                <p>We implement appropriate security measures to protect your personal information, including:</p>
+                <ul>
+                  <li>Secure socket layer (SSL) encryption</li>
+                  <li>Firebase Authentication for account security</li>
+                  <li>Regular security audits</li>
+                  <li>Limited access to personal information</li>
+                </ul>
+              </section>
+
+              <section>
+                <h3>5. Authentication Services</h3>
+                <p>We use Firebase Authentication and Google Sign-In services. When you use these services:</p>
+                <ul>
+                  <li>Your authentication is handled securely by Google/Firebase</li>
+                  <li>We only receive your name and email address</li>
+                  <li>Your password is never stored on our servers</li>
+                </ul>
+              </section>
+
+              <section>
+                <h3>6. Cookies and Tracking</h3>
+                <p>We use cookies and similar technologies to:</p>
+                <ul>
+                  <li>Remember your login session</li>
+                  <li>Understand how you use our service</li>
+                  <li>Improve user experience</li>
+                </ul>
+              </section>
+
+              <section>
+                <h3>7. Your Rights</h3>
+                <p>You have the right to:</p>
+                <ul>
+                  <li>Access your personal information</li>
+                  <li>Request correction of inaccurate data</li>
+                  <li>Request deletion of your account and data</li>
+                  <li>Opt-out of marketing communications</li>
+                </ul>
+              </section>
+
+              <section>
+                <h3>8. Data Retention</h3>
+                <p>We retain your personal information for as long as your account is active or as needed to provide services. Order history is retained for business and legal purposes.</p>
+              </section>
+
+              <section>
+                <h3>9. Children's Privacy</h3>
+                <p>Our service is not intended for children under 13. We do not knowingly collect information from children under 13 years of age.</p>
+              </section>
+
+              <section>
+                <h3>10. Changes to Privacy Policy</h3>
+                <p>We may update this Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page.</p>
+              </section>
+
+              <section>
+                <h3>11. Contact Us</h3>
+                <p>If you have questions about this Privacy Policy, please contact us:</p>
+                <p><strong>Email:</strong> privacy@graceburger.com</p>
+                <p><strong>Phone:</strong> +63 912 345 6789</p>
+                <p><strong>Address:</strong> 123 Main Street, Barangay Carmen, Cagayan de Oro City</p>
+              </section>
+            </div>
+
+            <button 
+              onClick={() => setShowPrivacy(false)}
+              className="submit-btn"
+              style={{ marginTop: '2rem' }}
+            >
+              I UNDERSTAND
+            </button>
           </div>
         </div>
       )}

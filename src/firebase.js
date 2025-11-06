@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
+import { getAuth, GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
 import { getFirestore, doc, setDoc, getDoc, collection, addDoc } from 'firebase/firestore';
 
 // Your web app's Firebase configuration
@@ -98,5 +98,33 @@ export const saveOrder = async (orderData) => {
   } catch (error) {
     console.error('Error saving order:', error);
     throw error;
+  }
+};
+
+// Password Reset Function
+export const resetPassword = async (email) => {
+  try {
+    await sendPasswordResetEmail(auth, email);
+    return { success: true, message: 'Password reset email sent! Check your inbox.' };
+  } catch (error) {
+    console.error('Password reset error:', error);
+    
+    let errorMessage = 'Failed to send reset email.';
+    
+    switch (error.code) {
+      case 'auth/user-not-found':
+        errorMessage = 'No account found with this email address.';
+        break;
+      case 'auth/invalid-email':
+        errorMessage = 'Invalid email address format.';
+        break;
+      case 'auth/too-many-requests':
+        errorMessage = 'Too many requests. Please try again later.';
+        break;
+      default:
+        errorMessage = error.message;
+    }
+    
+    throw new Error(errorMessage);
   }
 };

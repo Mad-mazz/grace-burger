@@ -523,3 +523,113 @@
     transform: scale(0.8) translateY(30px);
   }
 }
+/* Forgot Password Specific Styles */
+.reset-password-form {
+  margin-top: 1.5rem;
+}
+
+.forgot-password {
+  transition: color 0.3s ease;
+}
+
+.forgot-password:hover {
+  color: #e6b12f;
+}
+
+/* Info box in forgot password modal */
+.modal-content ul {
+  list-style-type: disc;
+}
+
+.modal-content li {
+  margin-bottom: 0.25rem;
+}
+/* Policy Modal Styles */
+.policy-modal-content {
+  background: #0a0a0a;
+  border: 2px solid #D4A027;
+  border-radius: 8px;
+  padding: 2.5rem;
+  max-width: 700px;
+  width: 100%;
+  max-height: 85vh;
+  overflow-y: auto;
+  position: relative;
+  animation: modalSlideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.policy-content {
+  color: #ccc;
+  line-height: 1.7;
+  margin-top: 1.5rem;
+}
+
+.policy-content section {
+  margin-bottom: 2rem;
+}
+
+.policy-content h3 {
+  color: #D4A027;
+  font-size: 1.1rem;
+  margin-bottom: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.policy-content p {
+  margin-bottom: 0.75rem;
+  font-size: 0.95rem;
+  color: #bbb;
+}
+
+.policy-content ul {
+  margin-left: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.policy-content li {
+  margin-bottom: 0.5rem;
+  font-size: 0.95rem;
+  color: #bbb;
+}
+
+.policy-content strong {
+  color: #D4A027;
+  font-weight: 600;
+}
+
+/* Custom scrollbar for policy modals */
+.policy-modal-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.policy-modal-content::-webkit-scrollbar-track {
+  background: #111;
+  border-radius: 4px;
+}
+
+.policy-modal-content::-webkit-scrollbar-thumb {
+  background: #D4A027;
+  border-radius: 4px;
+}
+
+.policy-modal-content::-webkit-scrollbar-thumb:hover {
+  background: #e6b12f;
+}
+
+/* Responsive for policy modals */
+@media (max-width: 768px) {
+  .policy-modal-content {
+    padding: 2rem 1.5rem;
+    max-width: 95%;
+  }
+  
+  .policy-content h3 {
+    font-size: 1rem;
+  }
+  
+  .policy-content p,
+  .policy-content li {
+    font-size: 0.9rem;
+  }
+}

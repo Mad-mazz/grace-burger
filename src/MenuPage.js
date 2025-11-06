@@ -289,7 +289,7 @@ export default function MenuPage({ user, onSignOut }) {
         })),
         subtotal: getTotalPrice(),
         totalAmount: getTotalPrice(),
-        paymentMethod: paymentMethod === 'cash' ? 'Cash on Delivery' : 'GCash',
+        paymentMethod: paymentMethod === 'cash' ? 'Pay Cash on Store' : 'GCash',
         paymentReference: paymentMethod === 'gcash' ? gcashReference : null,
         status: 'received',
         paymentConfirmed: paymentMethod === 'cash' ? false : true,
@@ -314,7 +314,7 @@ export default function MenuPage({ user, onSignOut }) {
         date: orderDate,
         time: orderTime,
         timestamp: now,
-        paymentMethod: paymentMethod === 'cash' ? 'Cash on Delivery' : 'GCash',
+        paymentMethod: paymentMethod === 'cash' ? 'Pay Cash on Store' : 'GCash',
         reference: paymentMethod === 'gcash' ? `Ref: ${gcashReference}` : null,
         contactNumber: '+63 912 345 6789',
         items: cart.map(item => ({
@@ -1114,7 +1114,7 @@ export default function MenuPage({ user, onSignOut }) {
                 fontSize: '0.9rem'
               }}>
                 <span style={{ color: '#D4A027' }}>🕐</span>
-                10:00 AM - 10:00 PM Daily
+                10:00 AM - 5:00 PM Daily
               </li>
             </ul>
           </div>
