@@ -411,7 +411,7 @@ export default function MenuPage({ user, onSignOut }) {
           justifyContent: 'space-between' 
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <div style={{ color: '#D4A027', fontSize: '1.5rem' }}>⬡</div>
+            <div style={{ color: '#D4A027', fontSize: '1.5rem' }}>🍔</div>
             <span style={{ color: '#D4A027', fontWeight: 'bold', fontSize: '1.1rem', letterSpacing: '2px' }}>
               GRACE BURGER
             </span>

@@ -110,11 +110,17 @@ export default function AdminDashboard({ user, onSignOut }) {
         return orderDate === today;
       });
       
+      // Filter today's orders to only include orders with 'preparing' status (when Accept button is clicked)
+      // This ensures revenue and order count only update when Accept is clicked, not Mark Ready
+      const acceptedTodayOrders = todayOrders.filter(o => 
+        o.status === 'preparing' || o.status === 'ready' || o.status === 'completed'
+      );
+      
       setStats({
         pendingOrders: ordersData.filter(o => o.status === 'received').length,
-        todayRevenue: todayOrders.reduce((sum, o) => sum + (o.totalAmount || 0), 0),
-        ordersToday: todayOrders.length,
-        completedToday: todayOrders.filter(o => o.status === 'ready' || o.status === 'completed').length
+        todayRevenue: acceptedTodayOrders.reduce((sum, o) => sum + (o.totalAmount || 0), 0),
+        ordersToday: acceptedTodayOrders.length,
+        completedToday: todayOrders.filter(o => o.status === 'completed').length
       });
     });
 
