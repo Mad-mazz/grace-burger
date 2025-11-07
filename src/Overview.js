@@ -224,11 +224,6 @@ const Overview = ({ onLoginClick }) => {
                 <img 
                   src={phoneImage} 
                   alt="Grace Burger Mobile App"
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'contain'
-                  }}
                 />
               </div>
             </div>

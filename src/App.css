@@ -45,12 +45,6 @@
   clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
 }
 
-.logo-icon svg {
-  width: 24px;
-  height: 24px;
-  color: #000;
-}
-
 .logo-text {
   color: #D4A027;
   font-size: 1.25rem;

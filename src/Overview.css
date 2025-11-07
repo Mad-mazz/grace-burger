@@ -435,19 +435,26 @@
 
 .app-image {
   width: 100%;
-  max-width: 500px;
+  max-width: 700px; 
 }
 
 .phone-placeholder {
   width: 100%;
-  height: 500px;
-  background: linear-gradient(135deg, #2a2a2a, #1a1a1a);
+  height: 0;
+  padding-bottom: 65.54%; 
+  background: transparent; 
+  position: relative; 
+  overflow: hidden;
   border-radius: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 3px solid #333;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+}
+
+.phone-placeholder img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain; 
 }
 
 /* Footer Styles */
@@ -567,6 +574,10 @@
   .footer-container {
     grid-template-columns: repeat(2, 1fr);
   }
+  
+  .app-image {
+    max-width: 550px;
+  }
 }
 
 @media (max-width: 640px) {
@@ -599,10 +610,6 @@
     height: 300px;
   }
   
-  .phone-placeholder {
-    height: 400px;
-  }
-  
   .footer-container {
     grid-template-columns: 1fr;
   }
@@ -613,6 +620,15 @@
   
   .footer-logo {
     justify-content: center;
+  }
+  
+  .app-image {
+    max-width: 100%;
+  }
+  
+  /* Phone placeholder maintains aspect ratio on mobile */
+  .phone-placeholder {
+    padding-bottom: 65.54%;
   }
 }
 
