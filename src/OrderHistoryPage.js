@@ -13,6 +13,33 @@ export default function OrderHistoryPage({ user, onBack }) {
   const [loading, setLoading] = useState(true);
   const [showReceipt, setShowReceipt] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [popup, setPopup] = useState({ show: false, message: '', type: 'info' });
+  const [inputPopup, setInputPopup] = useState({ show: false, message: '', value: '', onConfirm: null });
+  const [confirmPopup, setConfirmPopup] = useState({ show: false, message: '', onConfirm: null });
+
+  const showPopup = (message, type = 'info') => {
+    setPopup({ show: true, message, type });
+  };
+
+  const closePopup = () => {
+    setPopup({ show: false, message: '', type: 'info' });
+  };
+
+  const showInputPopup = (message, onConfirm) => {
+    setInputPopup({ show: true, message, value: '', onConfirm });
+  };
+
+  const closeInputPopup = () => {
+    setInputPopup({ show: false, message: '', value: '', onConfirm: null });
+  };
+
+  const showConfirmPopup = (message, onConfirm) => {
+    setConfirmPopup({ show: true, message, onConfirm });
+  };
+
+  const closeConfirmPopup = () => {
+    setConfirmPopup({ show: false, message: '', onConfirm: null });
+  };
 
   useEffect(() => {
     loadOrders();
@@ -126,40 +153,40 @@ export default function OrderHistoryPage({ user, onBack }) {
 
   const handleReorder = (order) => {
     // You can implement reorder functionality here
-    alert('Reorder feature - Add items back to cart');
+    showPopup('Reorder feature - Add items back to cart', 'info');
   };
 
   const handleReturnRequest = async (order) => {
-    const reason = prompt('Please provide a reason for return:');
-    if (!reason || reason.trim() === '') {
-      alert('Return reason is required');
-      return;
-    }
-
-    const confirmed = window.confirm(
-      `Request return for order ${order.orderNumber}?\n\nReason: ${reason}\n\nThis will be sent to admin for approval.`
-    );
-
-    if (confirmed) {
-      try {
-        // Import the function at the top if not already imported
-        const { requestOrderReturn } = await import('./firebase-admin');
-        
-        await requestOrderReturn(order.id, {
-          reason: reason,
-          requestedBy: user.uid,
-          requestedAt: new Date().toISOString(),
-          customerName: user.displayName || user.email,
-          orderAmount: order.totalAmount
-        });
-
-        alert('Return request submitted successfully! Please wait for admin approval.');
-        loadOrders(); // Reload orders to show updated status
-      } catch (error) {
-        console.error('Error requesting return:', error);
-        alert('Failed to submit return request. Please try again.');
+    showInputPopup('Please provide a reason for return:', async (reason) => {
+      if (!reason || reason.trim() === '') {
+        showPopup('Return reason is required', 'error');
+        return;
       }
-    }
+
+      showConfirmPopup(
+        `Request return for order ${order.orderNumber}?\n\nReason: ${reason}\n\nThis will be sent to admin for approval.`,
+        async () => {
+          try {
+            // Import the function at the top if not already imported
+            const { requestOrderReturn } = await import('./firebase-admin');
+            
+            await requestOrderReturn(order.id, {
+              reason: reason,
+              requestedBy: user.uid,
+              requestedAt: new Date().toISOString(),
+              customerName: user.displayName || user.email,
+              orderAmount: order.totalAmount
+            });
+
+            showPopup('Return request submitted successfully! Please wait for admin approval.', 'success');
+            loadOrders(); // Reload orders to show updated status
+          } catch (error) {
+            console.error('Error requesting return:', error);
+            showPopup('Failed to submit return request. Please try again.', 'error');
+          }
+        }
+      );
+    });
   };
 
   if (showReceipt && selectedOrder) {
@@ -567,7 +594,7 @@ export default function OrderHistoryPage({ user, onBack }) {
                         <Eye size={16} />
                         VIEW RECEIPT
                       </button>
-                      {(order.status === 'ready' || order.status === 'completed') && !order.returnRequested && !order.returned && (
+                      {(order.status === 'ready' || order.status === 'completed') && !order.returnRequested && !order.returned && !order.returnRejected && (
                         <>
                           <button
                             onClick={() => handleReorder(order)}
@@ -651,6 +678,19 @@ export default function OrderHistoryPage({ user, onBack }) {
                           RETURNED
                         </span>
                       )}
+                      {order.returnRejected && (
+                        <span style={{
+                          padding: '0.75rem 1.5rem',
+                          background: 'rgba(244, 67, 54, 0.1)',
+                          border: '1px solid #f44336',
+                          color: '#f44336',
+                          borderRadius: '8px',
+                          fontWeight: '600',
+                          fontSize: '0.85rem'
+                        }}>
+                          RETURN REJECTED
+                        </span>
+                      )}
                     </div>
                   </div>
 
@@ -684,6 +724,329 @@ export default function OrderHistoryPage({ user, onBack }) {
           </div>
         )}
       </div>
+
+      {/* Input Popup Modal */}
+      {inputPopup.show && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.8)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: '1rem'
+        }}>
+          <div style={{
+            background: 'linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%)',
+            borderRadius: '12px',
+            padding: '2rem',
+            maxWidth: '500px',
+            width: '100%',
+            border: '2px solid #D4A027',
+            boxShadow: '0 10px 40px rgba(0, 0, 0, 0.5)'
+          }}>
+            <h3 style={{
+              margin: '0 0 1.5rem 0',
+              fontSize: '1.25rem',
+              color: '#fff',
+              fontWeight: '600'
+            }}>
+              {inputPopup.message}
+            </h3>
+            <textarea
+              value={inputPopup.value}
+              onChange={(e) => setInputPopup({ ...inputPopup, value: e.target.value })}
+              placeholder="Enter your reason here..."
+              style={{
+                width: '100%',
+                minHeight: '100px',
+                padding: '0.75rem',
+                background: '#0a0a0a',
+                border: '1px solid #333',
+                borderRadius: '8px',
+                color: '#fff',
+                fontSize: '1rem',
+                fontFamily: 'inherit',
+                resize: 'vertical',
+                marginBottom: '1.5rem'
+              }}
+              autoFocus
+            />
+            <div style={{
+              display: 'flex',
+              gap: '0.75rem'
+            }}>
+              <button
+                onClick={() => {
+                  closeInputPopup();
+                }}
+                style={{
+                  flex: 1,
+                  padding: '0.75rem',
+                  background: 'transparent',
+                  border: '1px solid #666',
+                  borderRadius: '8px',
+                  color: '#fff',
+                  fontSize: '1rem',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = '#333';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'transparent';
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  if (inputPopup.onConfirm) {
+                    inputPopup.onConfirm(inputPopup.value);
+                  }
+                  closeInputPopup();
+                }}
+                style={{
+                  flex: 1,
+                  padding: '0.75rem',
+                  background: '#D4A027',
+                  border: 'none',
+                  borderRadius: '8px',
+                  color: '#000',
+                  fontSize: '1rem',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = '#B8891F';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = '#D4A027';
+                }}
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirm Popup Modal */}
+      {confirmPopup.show && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.8)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: '1rem'
+        }}>
+          <div style={{
+            background: 'linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%)',
+            borderRadius: '12px',
+            padding: '2rem',
+            maxWidth: '500px',
+            width: '100%',
+            border: '2px solid #D4A027',
+            boxShadow: '0 10px 40px rgba(0, 0, 0, 0.5)'
+          }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '1rem',
+              marginBottom: '1.5rem'
+            }}>
+              <div style={{
+                width: '48px',
+                height: '48px',
+                borderRadius: '50%',
+                background: 'rgba(212, 160, 39, 0.2)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '1.5rem'
+              }}>
+                ⚠️
+              </div>
+              <h3 style={{
+                margin: 0,
+                fontSize: '1.25rem',
+                color: '#D4A027',
+                fontWeight: '600'
+              }}>
+                Confirm Action
+              </h3>
+            </div>
+            <p style={{
+              color: '#fff',
+              fontSize: '1rem',
+              lineHeight: '1.6',
+              marginBottom: '1.5rem',
+              whiteSpace: 'pre-line'
+            }}>
+              {confirmPopup.message}
+            </p>
+            <div style={{
+              display: 'flex',
+              gap: '0.75rem'
+            }}>
+              <button
+                onClick={() => {
+                  closeConfirmPopup();
+                }}
+                style={{
+                  flex: 1,
+                  padding: '0.75rem',
+                  background: 'transparent',
+                  border: '1px solid #666',
+                  borderRadius: '8px',
+                  color: '#fff',
+                  fontSize: '1rem',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = '#333';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'transparent';
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  if (confirmPopup.onConfirm) {
+                    confirmPopup.onConfirm();
+                  }
+                  closeConfirmPopup();
+                }}
+                style={{
+                  flex: 1,
+                  padding: '0.75rem',
+                  background: '#D4A027',
+                  border: 'none',
+                  borderRadius: '8px',
+                  color: '#000',
+                  fontSize: '1rem',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = '#B8891F';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = '#D4A027';
+                }}
+              >
+                Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Custom Popup Modal */}
+      {popup.show && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.8)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: '1rem'
+        }}>
+          <div style={{
+            background: 'linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%)',
+            borderRadius: '12px',
+            padding: '2rem',
+            maxWidth: '500px',
+            width: '100%',
+            border: `2px solid ${popup.type === 'error' ? '#ff6b6b' : popup.type === 'success' ? '#4CAF50' : '#D4A027'}`,
+            boxShadow: '0 10px 40px rgba(0, 0, 0, 0.5)'
+          }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '1rem',
+              marginBottom: '1.5rem'
+            }}>
+              <div style={{
+                width: '48px',
+                height: '48px',
+                borderRadius: '50%',
+                background: popup.type === 'error' ? 'rgba(255, 107, 107, 0.2)' : popup.type === 'success' ? 'rgba(76, 175, 80, 0.2)' : 'rgba(212, 160, 39, 0.2)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '1.5rem'
+              }}>
+                {popup.type === 'error' ? '❌' : popup.type === 'success' ? '✅' : 'ℹ️'}
+              </div>
+              <h3 style={{
+                margin: 0,
+                fontSize: '1.25rem',
+                color: popup.type === 'error' ? '#ff6b6b' : popup.type === 'success' ? '#4CAF50' : '#D4A027',
+                fontWeight: '600'
+              }}>
+                {popup.type === 'error' ? 'Error' : popup.type === 'success' ? 'Success' : 'Information'}
+              </h3>
+            </div>
+            <p style={{
+              color: '#fff',
+              fontSize: '1rem',
+              lineHeight: '1.6',
+              marginBottom: '1.5rem'
+            }}>
+              {popup.message}
+            </p>
+            <button
+              onClick={closePopup}
+              style={{
+                width: '100%',
+                padding: '0.75rem',
+                background: popup.type === 'error' ? '#ff6b6b' : popup.type === 'success' ? '#4CAF50' : '#D4A027',
+                border: 'none',
+                borderRadius: '8px',
+                color: popup.type === 'error' || popup.type === 'success' ? '#fff' : '#000',
+                fontSize: '1rem',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.opacity = '0.9';
+                e.currentTarget.style.transform = 'scale(1.02)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.opacity = '1';
+                e.currentTarget.style.transform = 'scale(1)';
+              }}
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

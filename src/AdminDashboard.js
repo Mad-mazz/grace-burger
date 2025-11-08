@@ -13,7 +13,11 @@ import {
   AlertCircle,
   Save,
   XCircle,
-  BarChart3
+  BarChart3,
+  CheckCircle,
+  XOctagon,
+  AlertTriangle,
+  Info
 } from 'lucide-react';
 import {
   subscribeToOrders,
@@ -32,6 +36,7 @@ import {
   rejectReturnRequest,
   getRevenueStats
 } from './firebase-admin';
+import './AdminDashboard.css';
 
 export default function AdminDashboard({ user, onSignOut }) {
   const [currentPage, setCurrentPage] = useState('orders');
@@ -56,6 +61,83 @@ export default function AdminDashboard({ user, onSignOut }) {
     returnCount: 0
   });
   const [monthlySales, setMonthlySales] = useState([]);
+
+  // Modal state for custom notifications
+  const [modal, setModal] = useState({
+    isOpen: false,
+    type: 'info', // 'success', 'error', 'warning', 'info', 'confirm', 'input'
+    title: '',
+    message: '',
+    onConfirm: null,
+    onCancel: null,
+    inputValue: '',
+    inputPlaceholder: ''
+  });
+
+  // Modal helper functions
+  const showModal = (type, title, message, onConfirm = null) => {
+    setModal({
+      isOpen: true,
+      type,
+      title,
+      message,
+      onConfirm,
+      onCancel: null,
+      inputValue: '',
+      inputPlaceholder: ''
+    });
+  };
+
+  const showConfirmModal = (title, message, onConfirm, onCancel = null) => {
+    setModal({
+      isOpen: true,
+      type: 'confirm',
+      title,
+      message,
+      onConfirm,
+      onCancel,
+      inputValue: '',
+      inputPlaceholder: ''
+    });
+  };
+
+  const showInputModal = (title, message, placeholder, onConfirm, onCancel = null) => {
+    setModal({
+      isOpen: true,
+      type: 'input',
+      title,
+      message,
+      onConfirm,
+      onCancel,
+      inputValue: '',
+      inputPlaceholder: placeholder
+    });
+  };
+
+  const closeModal = () => {
+    setModal({
+      ...modal,
+      isOpen: false
+    });
+  };
+
+  const handleModalConfirm = () => {
+    if (modal.onConfirm) {
+      if (modal.type === 'input') {
+        modal.onConfirm(modal.inputValue);
+      } else {
+        modal.onConfirm();
+      }
+    }
+    closeModal();
+  };
+
+  const handleModalCancel = () => {
+    if (modal.onCancel) {
+      modal.onCancel();
+    }
+    closeModal();
+  };
 
   // Calculate monthly sales data
   useEffect(() => {
@@ -117,7 +199,9 @@ export default function AdminDashboard({ user, onSignOut }) {
       );
       
       setStats({
-        pendingOrders: ordersData.filter(o => o.status === 'received').length,
+        pendingOrders: ordersData.filter(o => 
+          o.status?.toLowerCase() === 'received' || o.status?.toLowerCase() === 'processing'
+        ).length,
         todayRevenue: acceptedTodayOrders.reduce((sum, o) => sum + (o.totalAmount || 0), 0),
         ordersToday: acceptedTodayOrders.length,
         completedToday: todayOrders.filter(o => o.status === 'completed').length
@@ -152,34 +236,38 @@ export default function AdminDashboard({ user, onSignOut }) {
   const handleAcceptOrder = async (order) => {
   try {
     await acceptOrder(order.id, order.items);
-    alert('Order accepted and inventory updated successfully!');
+    showModal('success', 'Order Accepted', 'Order accepted and inventory updated successfully!');
   } catch (error) {
     console.error('Error accepting order:', error);
     // Show detailed error message to admin
-    alert(`Failed to accept order:\n\n${error.message}\n\nPlease check inventory and restock if needed.`);
+    showModal('error', 'Failed to Accept Order', `${error.message}\n\nPlease check inventory and restock if needed.`);
   }
 };
 
   const handleCompleteOrder = async (orderId) => {
     try {
       await completeOrder(orderId);
-      alert('Order marked as ready for pickup!');
+      showModal('success', 'Order Ready', 'Order marked as ready for pickup!');
     } catch (error) {
       console.error('Error completing order:', error);
-      alert('Failed to complete order: ' + error.message);
+      showModal('error', 'Failed to Complete Order', 'Failed to complete order: ' + error.message);
     }
   };
 
   const handleCancelOrder = async (orderId) => {
-    if (window.confirm('Are you sure you want to cancel this order?\n\nThe order will be marked as CANCELLED and kept in the database for records.')) {
-      try {
-        await cancelOrder(orderId); // This now marks order as cancelled
-        alert('Order cancelled successfully!\n\nThe order status has been updated to CANCELLED.');
-      } catch (error) {
-        console.error('Error cancelling order:', error);
-        alert('Failed to cancel order: ' + error.message);
+    showConfirmModal(
+      'Cancel Order',
+      'Are you sure you want to cancel this order?\n\nThe order will be marked as CANCELLED and kept in the database for records.',
+      async () => {
+        try {
+          await cancelOrder(orderId);
+          showModal('success', 'Order Cancelled', 'The order status has been updated to CANCELLED.');
+        } catch (error) {
+          console.error('Error cancelling order:', error);
+          showModal('error', 'Failed to Cancel Order', 'Failed to cancel order: ' + error.message);
+        }
       }
-    }
+    );
   };
 
 
@@ -213,38 +301,44 @@ export default function AdminDashboard({ user, onSignOut }) {
   };
 
   const handleApproveReturn = async (orderId, orderAmount) => {
-    const confirmed = window.confirm(
-      `Approve this return request?\n\nAmount to refund: ₱${orderAmount}\n\nThis will deduct from total revenue.`
-    );
-
-    if (confirmed) {
-      try {
-        await approveReturnRequest(orderId);
-        alert('Return approved successfully!');
-        loadReturnRequests();
-        loadRevenueStats();
-      } catch (error) {
-        console.error('Error approving return:', error);
-        alert('Failed to approve return. Please try again.');
+    showConfirmModal(
+      'Approve Return Request',
+      `Approve this return request?\n\nAmount to refund: ₱${orderAmount}\n\nThis will deduct from total revenue.`,
+      async () => {
+        try {
+          await approveReturnRequest(orderId);
+          showModal('success', 'Return Approved', 'Return approved successfully!');
+          loadReturnRequests();
+          loadRevenueStats();
+        } catch (error) {
+          console.error('Error approving return:', error);
+          showModal('error', 'Failed to Approve Return', 'Failed to approve return. Please try again.');
+        }
       }
-    }
+    );
   };
 
   const handleRejectReturn = async (orderId) => {
-    const reason = prompt('Please provide reason for rejection:');
-    if (!reason || reason.trim() === '') {
-      alert('Rejection reason is required');
-      return;
-    }
+    showInputModal(
+      'Reject Return Request',
+      'Please provide reason for rejection:',
+      'Enter rejection reason...',
+      async (reason) => {
+        if (!reason || reason.trim() === '') {
+          showModal('warning', 'Reason Required', 'Rejection reason is required');
+          return;
+        }
 
-    try {
-      await rejectReturnRequest(orderId, reason);
-      alert('Return request rejected.');
-      loadReturnRequests();
-    } catch (error) {
-      console.error('Error rejecting return:', error);
-      alert('Failed to reject return. Please try again.');
-    }
+        try {
+          await rejectReturnRequest(orderId, reason);
+          showModal('success', 'Return Rejected', 'Return request rejected.');
+          loadReturnRequests();
+        } catch (error) {
+          console.error('Error rejecting return:', error);
+          showModal('error', 'Failed to Reject Return', 'Failed to reject return. Please try again.');
+        }
+      }
+    );
   };
 
   const handleSaveInventoryItem = async (item) => {
@@ -258,7 +352,7 @@ export default function AdminDashboard({ user, onSignOut }) {
           price: parseFloat(item.price),
           lowStockThreshold: parseInt(item.lowStockThreshold)
         });
-        alert('Inventory item updated!');
+        showModal('success', 'Item Updated', 'Inventory item updated!');
       } else {
         await addInventoryItem({
           name: item.name,
@@ -268,26 +362,30 @@ export default function AdminDashboard({ user, onSignOut }) {
           price: parseFloat(item.price),
           lowStockThreshold: parseInt(item.lowStockThreshold)
         });
-        alert('Inventory item added!');
+        showModal('success', 'Item Added', 'Inventory item added!');
       }
       setEditingItem(null);
       setShowAddModal(false);
     } catch (error) {
       console.error('Error saving inventory item:', error);
-      alert('Failed to save item: ' + error.message);
+      showModal('error', 'Failed to Save Item', 'Failed to save item: ' + error.message);
     }
   };
 
   const handleDeleteInventoryItem = async (itemId) => {
-    if (window.confirm('Are you sure you want to delete this item?')) {
-      try {
-        await deleteInventoryItem(itemId);
-        alert('Inventory item deleted!');
-      } catch (error) {
-        console.error('Error deleting inventory item:', error);
-        alert('Failed to delete item: ' + error.message);
+    showConfirmModal(
+      'Delete Item',
+      'Are you sure you want to delete this item?',
+      async () => {
+        try {
+          await deleteInventoryItem(itemId);
+          showModal('success', 'Item Deleted', 'Inventory item deleted!');
+        } catch (error) {
+          console.error('Error deleting inventory item:', error);
+          showModal('error', 'Failed to Delete Item', 'Failed to delete item: ' + error.message);
+        }
       }
-    }
+    );
   };
 
   const filteredOrders = orders.filter(order => 
@@ -301,28 +399,46 @@ export default function AdminDashboard({ user, onSignOut }) {
 
   // Initialize inventory button (for first-time setup)
   const handleInitializeInventory = async () => {
-    if (window.confirm('This will initialize the inventory with default items. Continue?')) {
-      try {
-        await initializeInventory();
-        alert('Inventory initialized successfully!');
-      } catch (error) {
-        console.error('Error:', error);
-        alert('Failed to initialize inventory');
+    showConfirmModal(
+      'Initialize Inventory',
+      'This will initialize the inventory with default items. Continue?',
+      async () => {
+        try {
+          await initializeInventory();
+          showModal('success', 'Inventory Initialized', 'Inventory initialized successfully!');
+        } catch (error) {
+          console.error('Error:', error);
+          showModal('error', 'Initialization Failed', 'Failed to initialize inventory');
+        }
       }
-    }
+    );
   };
 
   const handlePickupComplete = async (orderId) => {
-  if (window.confirm('Mark this order as picked up by customer?')) {
-    try {
-      await updateOrderStatus(orderId, 'completed');
-      alert('Order marked as completed!');
-    } catch (error) {
-      console.error('Error completing order:', error);
-      alert('Failed to complete order: ' + error.message);
-    }
-  }
-};
+    showConfirmModal(
+      'Complete Order',
+      'Mark this order as picked up by customer?',
+      async () => {
+        try {
+          await updateOrderStatus(orderId, 'completed');
+          showModal('success', 'Order Completed', 'Order marked as completed!');
+        } catch (error) {
+          console.error('Error completing order:', error);
+          showModal('error', 'Failed to Complete Order', 'Failed to complete order: ' + error.message);
+        }
+      }
+    );
+  };
+
+  const handleLogout = () => {
+    showConfirmModal(
+      'Confirm Logout',
+      'Are you sure you want to logout?',
+      () => {
+        onSignOut();
+      }
+    );
+  };
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: '#0a0a0a', color: '#fff' }}>
@@ -398,7 +514,7 @@ export default function AdminDashboard({ user, onSignOut }) {
         </nav>
 
         <button
-          onClick={onSignOut}
+          onClick={handleLogout}
           style={{
             width: '100%',
             background: 'transparent',
@@ -1486,6 +1602,56 @@ export default function AdminDashboard({ user, onSignOut }) {
           </div>
         )}
       </div>
+
+      {/* Custom Modal Component */}
+      {modal.isOpen && (
+        <div className="modal-overlay" onClick={handleModalCancel}>
+          <div className={`modal-container ${modal.type === 'confirm' ? 'confirm-modal' : ''}`} onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <div className={`modal-icon ${modal.type === 'success' ? 'success' : modal.type === 'error' ? 'error' : modal.type === 'warning' ? 'warning' : 'info'}`}>
+                {modal.type === 'success' && <CheckCircle size={24} />}
+                {modal.type === 'error' && <XOctagon size={24} />}
+                {modal.type === 'warning' && <AlertTriangle size={24} />}
+                {(modal.type === 'info' || modal.type === 'confirm' || modal.type === 'input') && <Info size={24} />}
+              </div>
+              <h2 className="modal-title">{modal.title}</h2>
+            </div>
+            
+            <div className="modal-body">
+              {modal.message}
+              {modal.type === 'input' && (
+                <textarea
+                  className="modal-input modal-textarea"
+                  placeholder={modal.inputPlaceholder}
+                  value={modal.inputValue}
+                  onChange={(e) => setModal({ ...modal, inputValue: e.target.value })}
+                  autoFocus
+                />
+              )}
+            </div>
+            
+            <div className="modal-footer">
+              {modal.type === 'confirm' || modal.type === 'input' ? (
+                <>
+                  <button className="modal-button secondary" onClick={handleModalCancel}>
+                    <X size={20} />
+                    Cancel
+                  </button>
+                  <button className="modal-button primary" onClick={handleModalConfirm}>
+                    <Check size={20} />
+                    Confirm
+                  </button>
+                </>
+              ) : (
+                <button className="modal-button primary" onClick={closeModal}>
+                  <Check size={20} />
+                  OK
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

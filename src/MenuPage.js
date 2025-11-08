@@ -69,6 +69,7 @@ export default function MenuPage({ user, onSignOut }) {
   const [orderData, setOrderData] = useState(null);
   const [topProducts, setTopProducts] = useState([]);
   const [inventory, setInventory] = useState([]);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
 
   // Load top selling products and subscribe to inventory
@@ -88,6 +89,19 @@ export default function MenuPage({ user, onSignOut }) {
       unsubscribe();
     };
   }, []);
+
+  const handleLogoutClick = () => {
+    setShowLogoutConfirm(true);
+  };
+
+  const confirmLogout = () => {
+    setShowLogoutConfirm(false);
+    onSignOut();
+  };
+
+  const cancelLogout = () => {
+    setShowLogoutConfirm(false);
+  };
 
   const loadTopProducts = async () => {
     try {
@@ -480,7 +494,7 @@ export default function MenuPage({ user, onSignOut }) {
               )}
             </button>
             <button 
-              onClick={onSignOut}
+              onClick={handleLogoutClick}
               style={{
                 background: 'transparent',
                 border: '1px solid #333',
@@ -1416,6 +1430,120 @@ export default function MenuPage({ user, onSignOut }) {
                 </button>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Logout Confirmation Modal */}
+      {showLogoutConfirm && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.8)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 10000,
+          padding: '1rem'
+        }}>
+          <div style={{
+            background: 'linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%)',
+            borderRadius: '12px',
+            padding: '2rem',
+            maxWidth: '450px',
+            width: '100%',
+            border: '2px solid #D4A027',
+            boxShadow: '0 10px 40px rgba(0, 0, 0, 0.5)'
+          }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '1rem',
+              marginBottom: '1.5rem'
+            }}>
+              <div style={{
+                width: '48px',
+                height: '48px',
+                borderRadius: '50%',
+                background: 'rgba(212, 160, 39, 0.2)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '1.5rem'
+              }}>
+                ⚠️
+              </div>
+              <h3 style={{
+                margin: 0,
+                fontSize: '1.25rem',
+                color: '#D4A027',
+                fontWeight: '600'
+              }}>
+                Confirm Logout
+              </h3>
+            </div>
+            <p style={{
+              color: '#fff',
+              fontSize: '1rem',
+              lineHeight: '1.6',
+              marginBottom: '1.5rem'
+            }}>
+              Are you sure you want to log out?
+            </p>
+            <div style={{
+              display: 'flex',
+              gap: '0.75rem'
+            }}>
+              <button
+                onClick={cancelLogout}
+                style={{
+                  flex: 1,
+                  padding: '0.75rem',
+                  background: 'transparent',
+                  border: '1px solid #666',
+                  borderRadius: '8px',
+                  color: '#fff',
+                  fontSize: '1rem',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = '#333';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'transparent';
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmLogout}
+                style={{
+                  flex: 1,
+                  padding: '0.75rem',
+                  background: '#D4A027',
+                  border: 'none',
+                  borderRadius: '8px',
+                  color: '#000',
+                  fontSize: '1rem',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = '#B8891F';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = '#D4A027';
+                }}
+              >
+                Logout
+              </button>
+            </div>
           </div>
         </div>
       )}
